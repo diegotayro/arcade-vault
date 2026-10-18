@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GAMES, findGame } from "@/lib/games";
@@ -8,6 +9,12 @@ const PODIUM_CLASSES = ["top1", "top2", "top3"];
 
 export function generateStaticParams() {
   return GAMES.map((game) => ({ id: game.id }));
+}
+
+export async function generateMetadata({ params }: PageProps<"/games/[id]">): Promise<Metadata> {
+  const { id } = await params;
+  const game = findGame(id);
+  return { title: game?.title, description: game?.short };
 }
 
 export default async function GameDetailPage({ params }: PageProps<"/games/[id]">) {
