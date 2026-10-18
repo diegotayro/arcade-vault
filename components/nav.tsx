@@ -17,7 +17,8 @@ export function Nav() {
   const homeClass = pathname === "/" ? "active" : "";
   const libraryClass = isLibraryPath(pathname) ? "active" : "";
   const hallOfFameClass = pathname === "/hall-of-fame" ? "active" : "";
-  const authClass = pathname === "/auth" ? "active" : "";
+  const aboutClass = pathname === "/about" ? "active" : "";
+  const authClass =pathname === "/auth" ? "active" : "";
   const closePanel = () => setIsOpen(false);
 
   return (
@@ -33,6 +34,7 @@ export function Nav() {
           <Link href="/" className={homeClass}>Inicio</Link>
           <Link href="/games" className={libraryClass}>Biblioteca</Link>
           <Link href="/hall-of-fame" className={hallOfFameClass}>Salón de la Fama</Link>
+          <Link href="/about" className={aboutClass}>Sobre Nosotros</Link>
         </div>
         <div className="spacer"></div>
         <div className="coin-counter">
@@ -56,6 +58,7 @@ export function Nav() {
         <Link href="/" className={homeClass} onClick={closePanel}>Inicio</Link>
         <Link href="/games" className={libraryClass} onClick={closePanel}>Biblioteca</Link>
         <Link href="/hall-of-fame" className={hallOfFameClass} onClick={closePanel}>Salón de la Fama</Link>
+        <Link href="/about" className={aboutClass} onClick={closePanel}>Sobre Nosotros</Link>
         <Link href="/auth" className={authClass} onClick={closePanel}>Iniciar Sesión</Link>
         <div style={{ flex: 1 }}></div>
         <div className="pixel" style={{ fontSize: 9, color: "var(--ink-faint)", letterSpacing: "0.16em" }}>
