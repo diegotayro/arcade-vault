@@ -4,12 +4,11 @@ import { useEffect, useRef, useState } from "react";
 
 const VISIBILITY_THRESHOLD = 0.12;
 
-interface RevealProps {
+interface RevealProps extends React.HTMLAttributes<HTMLElement> {
   className?: string;
-  children: React.ReactNode;
 }
 
-export function Reveal({ className = "", children }: RevealProps) {
+export function Reveal({ className = "", children, ...rest }: RevealProps) {
   const ref = useRef<HTMLElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -30,7 +29,7 @@ export function Reveal({ className = "", children }: RevealProps) {
   }, []);
 
   return (
-    <section ref={ref} className={`${className} reveal${isVisible ? " in" : ""}`.trim()}>
+    <section ref={ref} {...rest} className={`${className} reveal${isVisible ? " in" : ""}`.trim()}>
       {children}
     </section>
   );
