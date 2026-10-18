@@ -1,3 +1,9 @@
+import { Hero } from "@/components/home/hero";
+
 export default function Home() {
-  return null;
+  return (
+    <div className="home fade-in">
+      <Hero />
+    </div>
+  );
 }
