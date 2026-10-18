@@ -1,6 +1,6 @@
 # SPEC 02 — Homepage (landing) de Arcade Vault
 
-> **Estado:** Aprovado
+> **Estado:** Implementado
 > **Depende de:** SPEC 01
 > **Fecha:** 2026-10-17
 > **Objetivo:** Implementar en `/` el homepage de `references/templates/home-about/home.jsx` (solo visual, datos mock) y mover la Biblioteca a `/games`.
