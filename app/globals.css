@@ -687,6 +687,15 @@ a { color: inherit; text-decoration: none; }
   background: var(--green); box-shadow: 0 0 6px var(--green);
 }
 
+/* canvas del juego real: resolución interna 800x600, escala fluida */
+.asteroids-canvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  aspect-ratio: 4 / 3;
+}
+
 /* fake in-screen game */
 .game-arena {
   position: absolute; inset: 0;
