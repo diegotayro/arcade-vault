@@ -19,3 +19,6 @@ Next.js 16.4.2 / React 19.3 with breaking changes versus common training data (s
 
 ## Skills
 Usa siempre /frontend-design para diseñar la interfaz de usuario
+
+## Supabase
+Para cualquier tipo de creacion o modificacion relacinado con la base de datos de Supabase siempre crea las migraciones respectivas.
