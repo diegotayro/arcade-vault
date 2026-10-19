@@ -3,15 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { LeaderboardEmptyRow } from "@/components/leaderboard-empty-row";
-import { getGame, getGames } from "@/lib/games-source";
+import { getGame, getGameStaticParams } from "@/lib/games-source";
 import { getTopScores } from "@/lib/leaderboard";
 
 const SCORES_COUNT = 10;
 const PODIUM_CLASSES = ["top1", "top2", "top3"];
 
 export async function generateStaticParams() {
-  const games = await getGames();
-  return games.map((game) => ({ id: game.id }));
+  return getGameStaticParams();
 }
 
 export async function generateMetadata({
