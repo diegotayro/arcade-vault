@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { GamePlayer } from "@/components/game-player";
-import { getGame, getGames } from "@/lib/games-source";
+import { getGame, getGameStaticParams } from "@/lib/games-source";
 
 export async function generateStaticParams() {
-  const games = await getGames();
-  return games.map((game) => ({ id: game.id }));
+  return getGameStaticParams();
 }
 
 export async function generateMetadata({ params }: PageProps<"/games/[id]/play">): Promise<Metadata> {
