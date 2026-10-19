@@ -83,6 +83,17 @@ export const GAMES: Game[] = [
     plays: "15.6K",
   },
   {
+    id: "asteroids",
+    title: "ASTEROIDES",
+    short: "Esquiva, dispara y fragmenta rocas en el vacío.",
+    long: "Gira, propulsa y dispara para partir asteroides en fragmentos cada vez más pequeños. Recoge el power-up de triple disparo y sobrevive a oleadas que no paran de crecer.",
+    category: "SHOOTER",
+    cover: "cover-asteroids",
+    color: "cyan",
+    best: 0,
+    plays: "0",
+  },
+  {
     id: "ranaria",
     title: "RANARIA",
     short: "Cruza la autopista de pixeles.",
