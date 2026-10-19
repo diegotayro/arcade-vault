@@ -14,13 +14,114 @@ export type Database = {
   };
   public: {
     Tables: {
-      [_ in never]: never;
+      games: {
+        Row: {
+          category: string;
+          color: string;
+          cover: string;
+          created_at: string;
+          id: string;
+          long: string;
+          plays_count: number;
+          short: string;
+          title: string;
+        };
+        Insert: {
+          category: string;
+          color: string;
+          cover: string;
+          created_at?: string;
+          id: string;
+          long: string;
+          plays_count?: number;
+          short: string;
+          title: string;
+        };
+        Update: {
+          category?: string;
+          color?: string;
+          cover?: string;
+          created_at?: string;
+          id?: string;
+          long?: string;
+          plays_count?: number;
+          short?: string;
+          title?: string;
+        };
+        Relationships: [];
+      };
+      leaderboard: {
+        Row: {
+          created_at: string;
+          game_id: string;
+          id: string;
+          player_name: string;
+          score: number;
+          user_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          game_id: string;
+          id?: string;
+          player_name: string;
+          score: number;
+          user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          game_id?: string;
+          id?: string;
+          player_name?: string;
+          score?: number;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leaderboard_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "leaderboard_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games_catalog";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
-      [_ in never]: never;
+      games_catalog: {
+        Row: {
+          best: number | null;
+          category: string | null;
+          color: string | null;
+          cover: string | null;
+          created_at: string | null;
+          id: string | null;
+          long: string | null;
+          plays_count: number | null;
+          short: string | null;
+          title: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       health_check: { Args: never; Returns: string };
+      top_scores: {
+        Args: { p_limit: number };
+        Returns: {
+          created_at: string;
+          game_id: string;
+          player_name: string;
+          rank: number;
+          score: number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
