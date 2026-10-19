@@ -2,25 +2,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { GAMES, findGame } from "@/lib/games";
+import { getGame, getGames } from "@/lib/games-source";
 import { seededScores } from "@/lib/scores";
 
 const SCORES_COUNT = 10;
 const PODIUM_CLASSES = ["top1", "top2", "top3"];
 
-export function generateStaticParams() {
-  return GAMES.map((game) => ({ id: game.id }));
+export async function generateStaticParams() {
+  const games = await getGames();
+  return games.map((game) => ({ id: game.id }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/games/[id]">): Promise<Metadata> {
   const { id } = await params;
-  const game = findGame(id);
+  const game = await getGame(id);
   return { title: game?.title, description: game?.short };
 }
 
 async function GameDetail({ params }: Pick<PageProps<"/games/[id]">, "params">) {
   const { id } = await params;
-  const game = findGame(id);
+  const game = await getGame(id);
   if (!game) notFound();
 
   const scores = seededScores(id.length * 17 + 3, SCORES_COUNT);

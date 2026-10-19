@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { CATEGORIES, GAMES } from "@/lib/games";
+import { CATEGORIES, type Game } from "@/lib/games";
 import { GameCard } from "./game-card";
 
 type CategoryFilter = (typeof CATEGORIES)[number];
 
-export function Library() {
+export function Library({ games }: { games: Game[] }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("TODOS");
 
   const normalizedQuery = query.toLowerCase();
-  const filteredGames = GAMES.filter(
+  const filteredGames = games.filter(
     (game) =>
       (category === "TODOS" || game.category === category) &&
       game.title.toLowerCase().includes(normalizedQuery),

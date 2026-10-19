@@ -2,16 +2,18 @@ import Link from "next/link";
 import { MiniCard } from "@/components/home/mini-card";
 import { Reveal } from "@/components/home/reveal";
 import { SectionHead } from "@/components/home/section-head";
-import { GAMES } from "@/lib/games";
+import { getGames } from "@/lib/games-source";
 
 const PREVIEW_COUNT = 6;
 
-export function GamesPreview() {
+export async function GamesPreview() {
+  const games = await getGames();
+
   return (
     <Reveal className="home-section">
       <SectionHead kicker="// 02" title="JUEGOS DISPONIBLES AHORA" color="cyan" />
       <div className="mini-rail">
-        {GAMES.slice(0, PREVIEW_COUNT).map((game) => (
+        {games.slice(0, PREVIEW_COUNT).map((game) => (
           <MiniCard key={game.id} game={game} />
         ))}
       </div>
