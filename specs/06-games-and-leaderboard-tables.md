@@ -10,14 +10,14 @@
 **Dentro:**
 
 - Migración con la tabla `public.games` (solo `asteroids` como seed) y RLS de solo lectura pública.
-- Migración con la tabla `public.leaderboard` (sin seed) con columna `user_id` nullable (sin FK todavía) y RLS: lectura pública y una política de `INSERT` **temporal** limitada a `asteroids` con `user_id` nulo.
+- Migración con la tabla `public.leaderboard` (sin seed) con columna `user_id` nullable (sin FK todavía), FK `game_id → games.id` (migración `add_leaderboard_game_fk`) y RLS: lectura pública y una política de `INSERT` **temporal** limitada a `asteroids` con `user_id` nulo.
 - Guardado de la puntuación de `asteroids` desde el modal de fin de partida mediante una Server Action (`saveScore`) que valida nombre y puntaje e inserta con `user_id = null`; tras guardar, el ranking se actualiza.
 - Migración posterior (spec de auth) deberá reemplazar la política temporal por una que exija sesión.
 - Vista `public.games_catalog` (`security_invoker`) que expone `games` más `best` calculado como `MAX(score)` del leaderboard (0 si no hay filas).
 - Función `public.top_scores(p_limit int)` que devuelve las mejores N puntuaciones de cada juego en una sola consulta.
 - Tipos regenerados en `lib/supabase/database.types.ts`.
 - Catálogo híbrido en `lib/games.ts`: los 8 juegos hardcodeados permanecen y `asteroids` se elimina del mock; un cargador de servidor fusiona mock + tabla (la tabla va al final).
-- Los rankings de `/games/[id]` y del Salón de la Fama leen `leaderboard` para cualquier juego, exista o no en `games`.
+- Los rankings de `/games/[id]` y del Salón de la Fama leen `leaderboard` para cualquier juego; los que no existen en `games` nunca tienen filas y muestran el estado vacío.
 - Estado vacío cuando un juego no tiene registros: una única fila con el texto «¡Sé el primero en registrar tu puntaje!», con el mismo diseño actual.
 - Eliminar `lib/scores.ts` (`seededScores`) por quedar sin uso.
 - Si Supabase falla, el catálogo cae al mock sin romper la página y los rankings se muestran vacíos.
@@ -29,7 +29,7 @@
 - Exigir sesión para guardar, asignar `user_id` real y la FK a `auth.users` (spec de auth/RLS).
 - Políticas `UPDATE`/`DELETE` y anti-trampas robustas (validación del lado del servidor del juego, rate limit).
 - Autenticación.
-- Migrar los otros 8 juegos a la tabla `games` y añadir una FK desde `leaderboard.game_id`.
+- Migrar los otros 8 juegos a la tabla `games` (al portarse cada uno, insertarlo antes en `games`).
 - Contador real de partidas (`plays_count` queda en 0 y sin incremento).
 - Realtime del ranking.
 - Tests automatizados.
@@ -58,7 +58,7 @@ create policy "games are publicly readable" on public.games
 -- supabase/migrations/<timestamp>_create_leaderboard.sql
 create table public.leaderboard (
   id uuid primary key default gen_random_uuid(),
-  game_id text not null check (game_id ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  game_id text not null references public.games (id),
   user_id uuid, -- nulo mientras no exista auth; la FK a auth.users llega con su spec
   player_name text not null check (char_length(player_name) between 3 and 12),
   score integer not null check (score >= 0 and score <= 10000000),
@@ -106,7 +106,8 @@ Convenciones:
 - La política de INSERT es deliberadamente temporal y está nombrada como tal para localizarla y eliminarla en la spec de auth.
 - `saveScore(gameId, playerName, score)` vive en `app/games/[id]/play/actions.ts` (`"use server"`), usa `lib/supabase/server.ts`, valida con las mismas reglas del `CHECK` y responde `{ ok: true }` o `{ ok: false }` sin detalles internos.
 - Solo `asteroids` llama a la acción; los demás juegos conservan el guardado mock.
-- `leaderboard.game_id` es texto **sin FK**: los 8 juegos hardcodeados no existen en `games` y aun así deben tener ranking.
+- `leaderboard.game_id` tiene FK a `games.id`: los 8 juegos hardcodeados no existen en `games`, por lo que no pueden tener filas y su ranking siempre es el estado vacío.
+- La FK se aplicó en una migración aparte (`add_leaderboard_game_fk`) porque `create_leaderboard` ya estaba aplicada; esta además elimina el `CHECK` de slug de `game_id`, que la FK vuelve innecesario.
 - El tipo `Game` de `lib/games.ts` no cambia; `plays_count` se formatea a `plays` (string) y `best` viene de la vista.
 - Desempate de ranking: mayor `score`, luego `created_at` más antiguo.
 - Archivos nuevos: `lib/games-source.ts` (cargador mock + tabla), `lib/leaderboard.ts` (consulta y mapeo). Ambos usan `lib/supabase/server.ts`.
@@ -117,7 +118,7 @@ Convenciones:
 Antes de escribir código Next.js, leer en `node_modules/next/dist/docs/` la guía de `cacheComponents` (data fetching y `use cache`) y la de Server/Client Components. Mantener `params` dentro de `<Suspense>` en `/games/[id]` y `/games/[id]/play` (ver error previo). Usar `/frontend-design` para la fila de estado vacío.
 
 1. Crear y aplicar la migración `games` con el seed de `asteroids`. Verificar: `list_migrations` la muestra y `select id from public.games` devuelve `asteroids`.
-2. Crear y aplicar la migración `leaderboard` (con `user_id` nullable y la política temporal). Verificar: `get_advisors` de seguridad sin `rls_disabled`; un `insert` con rol `anon` para `asteroids` funciona y para otro `game_id` o con `user_id` no nulo es rechazado.
+2. Crear y aplicar la migración `leaderboard` (con `user_id` nullable y la política temporal) y la migración `add_leaderboard_game_fk`. Verificar: `get_advisors` de seguridad sin `rls_disabled`; un `insert` con rol `anon` para `asteroids` funciona y para otro `game_id` o con `user_id` no nulo es rechazado.
 3. Crear y aplicar la migración de `games_catalog` y `top_scores`. Verificar: `select * from public.games_catalog` devuelve `best = 0` para `asteroids` y `select * from public.top_scores(10)` devuelve 0 filas sin error.
 4. Regenerar `lib/supabase/database.types.ts` con MCP `generate_typescript_types`. Verificar: `npx tsc --noEmit` pasa.
 5. Crear `lib/leaderboard.ts` con `getTopScores(gameId, limit)` y `getAllTopScores(limit)` (agrupado por `game_id`), con degradación a lista vacía ante error. Verificar: `npx tsc --noEmit` pasa.
@@ -132,10 +133,10 @@ Antes de escribir código Next.js, leer en `node_modules/next/dist/docs/` la gu�
 ## Criterios de aceptación
 
 - [ ] `npm run build`, `npm run lint` y `npx tsc --noEmit` terminan sin errores.
-- [ ] `list_migrations` muestra las tres migraciones y el mismo SQL existe en `supabase/migrations/`.
+- [ ] `list_migrations` muestra las cuatro migraciones y el mismo SQL existe en `supabase/migrations/`.
 - [ ] `games` y `leaderboard` tienen RLS activado; `games` solo tiene `SELECT` y `leaderboard` tiene `SELECT` más la política temporal de `INSERT`.
 - [ ] Un `insert` en `leaderboard` con `game_id = 'asteroids'` y `user_id` nulo es aceptado con la publishable key.
-- [ ] Un `insert` con otro `game_id` o con `user_id` no nulo es rechazado, y `update`/`delete` en `leaderboard` y cualquier escritura en `games` también.
+- [ ] Un `insert` con otro `game_id` (incluido uno inexistente en `games`) o con `user_id` no nulo es rechazado, y `update`/`delete` en `leaderboard` y cualquier escritura en `games` también.
 - [ ] Al terminar una partida de `asteroids` y pulsar "GUARDAR PUNTUACIÓN" se crea una fila con `game_id = 'asteroids'`, el nombre y el puntaje finales y `user_id` nulo.
 - [ ] Tras guardar, el modal muestra "PUNTUACIÓN GUARDADA" y la fila aparece en `/games/asteroids` y en el Salón de la Fama.
 - [ ] Nombres de menos de 3 caracteres o puntajes inválidos no se guardan y el modal muestra un error en español.
@@ -165,9 +166,8 @@ Antes de escribir código Next.js, leer en `node_modules/next/dist/docs/` la gu�
 - **Sí:** lectura pública. El resto de escrituras (UPDATE/DELETE) quedan sin política.
 - **Sí:** `games` solo con `asteroids` (decisión del usuario). El resto migra al portarse cada juego.
 - **Sí:** catálogo híbrido; `asteroids` se elimina del mock para no duplicarse (decisión del usuario).
-- **Sí:** `leaderboard.game_id` sin FK. Los juegos hardcodeados necesitan ranking sin tener fila en `games`. Contrapartida: sin integridad referencial hasta que se migren todos; la FK irá en una spec posterior.
-- **No:** FK + seed de los 9 juegos. Contradice la decisión de que solo `asteroids` venga de la tabla.
-- **Sí:** `CHECK` de formato slug sobre `game_id` para mitigar la falta de FK.
+- **Sí:** `leaderboard.game_id` con FK a `games.id`. Los juegos hardcodeados no son jugables ni pueden guardar puntajes, así que su ranking vacío es consistente. Contrapartida: cada juego portado debe insertarse en `games` antes de aceptar puntajes.
+- **No:** seed de los 9 juegos en `games` para satisfacer la FK. Contradice la decisión de que solo `asteroids` venga de la tabla.
 - **Sí:** sin seed de puntuaciones; los rankings quedan vacíos con la frase «¡Sé el primero…». Más honesto que datos inventados y no mezcla datos de prueba con reales.
 - **Sí:** eliminar `seededScores`. Dejaría código muerto y datos simulados contradictorios con el estado vacío.
 - **Sí:** `best` calculado en una vista (`games_catalog`) y no almacenado. Evita desincronización con el leaderboard.
@@ -182,7 +182,6 @@ Antes de escribir código Next.js, leer en `node_modules/next/dist/docs/` la gu�
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `cacheComponents` prerenderiza o cachea consultas y oculta cambios   | Leer la guía antes del paso 5; definir explícitamente qué se cachea (`use cache` + revalidación) y qué es dinámico. |
 | `generateStaticParams` ya no es síncrono si depende de la tabla      | Usar `getGames()` con fallback al mock; verificar `npm run build` sin Supabase accesible.                           |
-| `game_id` sin FK permite ids huérfanos                               | `CHECK` de slug y la FK diferida a una spec posterior; documentado en decisiones.                                   |
 | Puntajes falsificados por INSERT anónimo temporal | `CHECK` de rango, política limitada a `asteroids`, nombrada como temporal; se elimina en la spec de auth y se limpian filas de prueba. |
 | Vista sin `security_invoker` evadiría RLS                            | Crearla con `security_invoker = true` y confirmarlo con `get_advisors`.                                             |
 | Duplicados si `asteroids` queda en mock y en tabla                   | Criterio de aceptación explícito y filtro por `id` en el fusionador, con prioridad a la tabla.                      |
