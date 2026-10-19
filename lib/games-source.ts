@@ -1,9 +1,4 @@
-import {
-  GAMES,
-  type Game,
-  type GameCategory,
-  type NeonColor,
-} from "@/lib/games";
+import type { Game, GameCategory, NeonColor } from "@/lib/games";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -33,7 +28,7 @@ function toGame(row: CatalogRow): Game {
   };
 }
 
-async function getCatalogGames(): Promise<Game[]> {
+export async function getGames(): Promise<Game[]> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -46,13 +41,6 @@ async function getCatalogGames(): Promise<Game[]> {
   } catch {
     return [];
   }
-}
-
-export async function getGames(): Promise<Game[]> {
-  const catalogGames = await getCatalogGames();
-  const catalogIds = new Set(catalogGames.map((game) => game.id));
-  const mockGames = GAMES.filter((game) => !catalogIds.has(game.id));
-  return [...mockGames, ...catalogGames];
 }
 
 export async function getGame(id: string): Promise<Game | undefined> {
