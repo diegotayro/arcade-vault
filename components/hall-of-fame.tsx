@@ -2,44 +2,50 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { GAMES } from "@/lib/games";
-import { seededScores, type ScoreEntry } from "@/lib/scores";
+import { EMPTY_LEADERBOARD_MESSAGE } from "@/components/leaderboard-empty-row";
+import type { Game } from "@/lib/games";
+import type { ScoreEntry, ScoresByGame } from "@/lib/leaderboard";
 
-const ROWS_COUNT = 12;
 const PODIUM_CLASSES = ["top1", "top2", "top3"];
 
 const formatRank = (rank: number) => String(rank).padStart(2, "0");
 
 interface PodiumSlotProps {
   variant: "gold" | "silver" | "bronze";
-  entry: ScoreEntry;
+  rank: number;
+  entry?: ScoreEntry;
 }
 
-function PodiumSlot({ variant, entry }: PodiumSlotProps) {
+function PodiumSlot({ variant, rank, entry }: PodiumSlotProps) {
   const isGold = variant === "gold";
 
   return (
-    <div className={`podium-slot ${variant}`}>
-      {isGold && (
+    <div className={`podium-slot ${variant}${entry ? "" : " empty"}`}>
+      {isGold && entry && (
         <div className="pixel" style={{ fontSize: 9, color: "var(--gold)", letterSpacing: "0.18em" }}>
           CAMPEÓN
         </div>
       )}
       <div className="rank-num" style={isGold ? { fontSize: 36, marginTop: 4 } : undefined}>
-        {formatRank(entry.rank)}
+        {formatRank(rank)}
       </div>
-      <div className="name">{entry.name}</div>
+      <div className="name">{entry?.name ?? "---"}</div>
       <div className="score" style={isGold ? { fontSize: 20 } : undefined}>
-        {entry.score.toLocaleString("es-ES")}
+        {entry ? entry.score.toLocaleString("es-ES") : "---"}
       </div>
-      <div className="date">{entry.date}</div>
+      {entry && <div className="date">{entry.date}</div>}
     </div>
   );
 }
 
-export function HallOfFame() {
-  const [selectedId, setSelectedId] = useState(GAMES[0].id);
-  const rows = seededScores(selectedId.length * 23 + 7, ROWS_COUNT);
+interface HallOfFameProps {
+  games: Game[];
+  scoresByGame: ScoresByGame;
+}
+
+export function HallOfFame({ games, scoresByGame }: HallOfFameProps) {
+  const [selectedId, setSelectedId] = useState(games[0].id);
+  const rows = scoresByGame[selectedId] ?? [];
   const [first, second, third] = rows;
 
   return (
@@ -50,7 +56,7 @@ export function HallOfFame() {
       </div>
 
       <div className="hall-tabs">
-        {GAMES.map((game) => (
+        {games.map((game) => (
           <button
             key={game.id}
             type="button"
@@ -63,9 +69,9 @@ export function HallOfFame() {
       </div>
 
       <div className="podium">
-        <PodiumSlot variant="silver" entry={second} />
-        <PodiumSlot variant="gold" entry={first} />
-        <PodiumSlot variant="bronze" entry={third} />
+        <PodiumSlot variant="silver" rank={2} entry={second} />
+        <PodiumSlot variant="gold" rank={1} entry={first} />
+        <PodiumSlot variant="bronze" rank={3} entry={third} />
       </div>
 
       <div className="hall-table">
@@ -75,9 +81,12 @@ export function HallOfFame() {
           <div>PUNTUACIÓN</div>
           <div>FECHA</div>
         </div>
+        {rows.length === 0 && (
+          <div className="tr hall-empty">{EMPTY_LEADERBOARD_MESSAGE}</div>
+        )}
         {rows.map((entry, index) => (
           <div
-            key={entry.name + index}
+            key={entry.rank}
             className={["tr", PODIUM_CLASSES[index]].filter(Boolean).join(" ")}
             style={{ animationDelay: `${index * 50}ms` }}
           >
