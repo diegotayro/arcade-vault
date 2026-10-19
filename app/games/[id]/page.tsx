@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { GAMES, findGame } from "@/lib/games";
 import { seededScores } from "@/lib/scores";
 
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: PageProps<"/games/[id]">): Pr
   return { title: game?.title, description: game?.short };
 }
 
-export default async function GameDetailPage({ params }: PageProps<"/games/[id]">) {
+async function GameDetail({ params }: Pick<PageProps<"/games/[id]">, "params">) {
   const { id } = await params;
   const game = findGame(id);
   if (!game) notFound();
@@ -80,5 +81,24 @@ export default async function GameDetailPage({ params }: PageProps<"/games/[id]"
         </div>
       </aside>
     </div>
+  );
+}
+
+function GameDetailSkeleton() {
+  return (
+    <div className="av-detail" aria-busy="true">
+      <div className="detail-cover" />
+      <aside>
+        <div className="leaderboard" />
+      </aside>
+    </div>
+  );
+}
+
+export default function GameDetailPage({ params }: PageProps<"/games/[id]">) {
+  return (
+    <Suspense fallback={<GameDetailSkeleton />}>
+      <GameDetail params={params} />
+    </Suspense>
   );
 }
