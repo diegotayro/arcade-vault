@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import { AsteroidsCanvas, type AsteroidsCanvasHandle } from "@/components/asteroids-canvas";
 
 const INITIAL_LIVES = 3;
 const MAX_NAME_LENGTH = 10;
@@ -17,25 +19,70 @@ const randomPoints = () => Math.floor(10 + Math.random() * 90);
 
 export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
   const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(INITIAL_LIVES);
+  const [engineLevel, setEngineLevel] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
   const [isOver, setIsOver] = useState(false);
   const [name, setName] = useState("INVITADO");
   const [isSaved, setIsSaved] = useState(false);
 
-  const level = 1 + Math.floor(score / POINTS_PER_LEVEL);
-  const lives = INITIAL_LIVES;
+  const asteroidsRef = useRef<AsteroidsCanvasHandle>(null);
+  const isRealGame = gameId === "asteroids";
+
+  const level = isRealGame ? engineLevel : 1 + Math.floor(score / POINTS_PER_LEVEL);
 
   useEffect(() => {
-    if (isOver || isPaused) return;
+    if (isRealGame || isOver || isPaused) return;
     const timer = setInterval(() => setScore((current) => current + randomPoints()), SCORE_TICK_MS);
     return () => clearInterval(timer);
-  }, [isOver, isPaused]);
+  }, [isRealGame, isOver, isPaused]);
+
+  const handleLivesChange = (value: number) => {
+    setLives(value);
+    // Un reinicio con Espacio devuelve las vidas: cierra el modal de fin
+    if (value > 0) {
+      setIsOver(false);
+      setIsSaved(false);
+    }
+  };
+
+  const endGame = () => {
+    if (isRealGame) asteroidsRef.current?.endGame();
+    else setIsOver(true);
+  };
 
   const restart = () => {
+    asteroidsRef.current?.restart();
     setScore(0);
     setIsPaused(false);
     setIsOver(false);
     setIsSaved(false);
+  };
+
+  const renderGame = () => {
+    switch (gameId) {
+      case "asteroids":
+        return (
+          <AsteroidsCanvas
+            ref={asteroidsRef}
+            isPaused={isPaused}
+            onScoreChange={setScore}
+            onLivesChange={handleLivesChange}
+            onLevelChange={setEngineLevel}
+            onGameOver={() => setIsOver(true)}
+          />
+        );
+      default:
+        return (
+          <div className="game-arena">
+            <div className="grid-floor"></div>
+            <div className="enemy e1"></div>
+            <div className="enemy e2"></div>
+            <div className="enemy e3"></div>
+            <div className="player-ship"></div>
+          </div>
+        );
+    }
   };
 
   return (
@@ -63,20 +110,14 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           <button type="button" className="btn yellow" onClick={() => setIsPaused((paused) => !paused)}>
             {isPaused ? "REANUDAR" : "PAUSA"}
           </button>
-          <button type="button" className="btn magenta" onClick={() => setIsOver(true)}>FIN</button>
+          <button type="button" className="btn magenta" onClick={endGame}>FIN</button>
           <Link href={`/games/${gameId}`} className="btn ghost">SALIR</Link>
         </div>
       </div>
 
       <div className="crt">
         <div className="crt-screen">
-          <div className="game-arena">
-            <div className="grid-floor"></div>
-            <div className="enemy e1"></div>
-            <div className="enemy e2"></div>
-            <div className="enemy e3"></div>
-            <div className="player-ship"></div>
-          </div>
+          {renderGame()}
           {isPaused && (
             <div className="crt-content" style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}>
               <div>
