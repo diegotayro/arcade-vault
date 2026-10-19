@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
+import { saveScore } from "@/app/games/[id]/play/actions";
 import { AsteroidsCanvas, type AsteroidsCanvasHandle } from "@/components/asteroids-canvas";
+import { MIN_PLAYER_NAME_LENGTH } from "@/lib/score-rules";
 
 const INITIAL_LIVES = 3;
 const MAX_NAME_LENGTH = 10;
+const INVALID_NAME_MESSAGE = `El nombre debe tener entre ${MIN_PLAYER_NAME_LENGTH} y ${MAX_NAME_LENGTH} caracteres.`;
+const SAVE_FAILED_MESSAGE = "No se pudo guardar la puntuación. Inténtalo de nuevo.";
 const SCORE_TICK_MS = 220;
 const POINTS_PER_LEVEL = 2500;
 
@@ -25,6 +29,8 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
   const [isOver, setIsOver] = useState(false);
   const [name, setName] = useState("INVITADO");
   const [isSaved, setIsSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, startSaving] = useTransition();
 
   const asteroidsRef = useRef<AsteroidsCanvasHandle>(null);
   const isRealGame = gameId === "asteroids";
@@ -43,6 +49,7 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
     if (value > 0) {
       setIsOver(false);
       setIsSaved(false);
+      setSaveError(null);
     }
   };
 
@@ -51,12 +58,33 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
     else setIsOver(true);
   };
 
+  const handleSave = () => {
+    if (!isRealGame) {
+      setIsSaved(true);
+      return;
+    }
+
+    const trimmedName = name.trim();
+    if (trimmedName.length < MIN_PLAYER_NAME_LENGTH) {
+      setSaveError(INVALID_NAME_MESSAGE);
+      return;
+    }
+
+    setSaveError(null);
+    startSaving(async () => {
+      const result = await saveScore(gameId, trimmedName, score);
+      if (result.ok) setIsSaved(true);
+      else setSaveError(SAVE_FAILED_MESSAGE);
+    });
+  };
+
   const restart = () => {
     asteroidsRef.current?.restart();
     setScore(0);
     setIsPaused(false);
     setIsOver(false);
     setIsSaved(false);
+    setSaveError(null);
   };
 
   const renderGame = () => {
@@ -151,9 +179,14 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
                   onChange={(event) => setName(event.target.value.toUpperCase().slice(0, MAX_NAME_LENGTH))}
                   placeholder="TUS INICIALES"
                 />
-                <button type="button" className="btn yellow" onClick={() => setIsSaved(true)}>
-                  GUARDAR PUNTUACIÓN
+                <button type="button" className="btn yellow" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? "GUARDANDO…" : "GUARDAR PUNTUACIÓN"}
                 </button>
+              </div>
+            )}
+            {saveError && (
+              <div role="alert" className="mono" style={{ color: "var(--magenta)", fontSize: 12, marginTop: 12 }}>
+                {saveError}
               </div>
             )}
             <div className="actions">
