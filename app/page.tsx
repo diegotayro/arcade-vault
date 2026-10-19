@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ActivitySection } from "@/components/home/activity-section";
 import { FeaturesSection } from "@/components/home/features-section";
 import { FinalCta } from "@/components/home/final-cta";
@@ -14,7 +15,9 @@ export default function Home() {
     <div className="home fade-in">
       <Hero />
       <FeaturesSection />
-      <GamesPreview />
+      <Suspense fallback={<section className="home-section" aria-busy="true" />}>
+        <GamesPreview />
+      </Suspense>
       <StatsSection />
       <ActivitySection />
       <PricingSection />
