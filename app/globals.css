@@ -768,22 +768,40 @@ a {
   filter: drop-shadow(0 0 8px rgba(255, 0, 110, 0.9));
 }
 
+/* Grilla de juego, serpiente en L que sube hacia una fruta magenta */
 .cover-snake {
-  background: linear-gradient(135deg, #003a2a, #0a0a18);
+  background:
+    radial-gradient(circle at 60% 14%, var(--magenta) 0 9px, transparent 10px),
+    radial-gradient(circle at 60% 14%, rgba(255, 0, 110, 0.35) 0 18px, transparent 19px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.09) 1px, transparent 1px) 0 0 /
+      10% 100%,
+    linear-gradient(rgba(0, 255, 136, 0.09) 1px, transparent 1px) 0 0 / 100%
+      16.6667%,
+    linear-gradient(135deg, #003a2a, #05050f);
 }
+.cover-snake::before,
 .cover-snake::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(circle at 70% 50%, var(--magenta) 0 6px, transparent 7px),
-    linear-gradient(90deg, var(--green) 0 40px, transparent 40px) 20% 50% /
-      200px 12px no-repeat,
-    linear-gradient(90deg, var(--green) 0 12px, transparent 12px)
-      calc(20% + 40px) calc(50% - 12px) / 12px 12px no-repeat,
-    linear-gradient(90deg, var(--green) 0 12px, transparent 12px)
-      calc(20% + 28px) calc(50% - 12px) / 12px 12px no-repeat;
-  filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.6));
+  border-radius: 999px;
+  filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.7));
+}
+.cover-snake::before {
+  left: 16%;
+  top: 62%;
+  width: 44%;
+  height: 14px;
+  background: linear-gradient(90deg, rgba(0, 255, 136, 0.25), var(--green));
+}
+.cover-snake::after {
+  left: calc(60% - 14px);
+  top: 30%;
+  width: 14px;
+  height: calc(32% + 14px);
+  background:
+    radial-gradient(circle at 25% 12%, #05050f 0 1.5px, transparent 2px),
+    radial-gradient(circle at 75% 12%, #05050f 0 1.5px, transparent 2px),
+    var(--green);
 }
 
 .cover-glot {
@@ -1272,7 +1290,8 @@ a {
 
 /* canvas del juego real: resolución interna 800x600, escala fluida */
 .asteroids-canvas,
-.arkanoid-canvas {
+.arkanoid-canvas,
+.snake-canvas {
   display: block;
   width: 100%;
   max-width: 100%;

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { saveScore } from "@/app/games/[id]/play/actions";
 import { ArkanoidCanvas } from "@/components/arkanoid-canvas";
 import { AsteroidsCanvas } from "@/components/asteroids-canvas";
+import { SnakeCanvas } from "@/components/snake-canvas";
 import { TetrisCanvas } from "@/components/tetris-canvas";
 import { MIN_PLAYER_NAME_LENGTH } from "@/lib/score-rules";
 import type { TetrisTheme } from "@/lib/games/tetris/types";
@@ -23,6 +24,7 @@ const REAL_GAMES = {
   asteroids: { hasLives: true, hasThemeToggle: false },
   tetris: { hasLives: false, hasThemeToggle: true },
   arkanoid: { hasLives: true, hasThemeToggle: false },
+  snake: { hasLives: false, hasThemeToggle: false },
 } as const;
 
 type RealGameId = keyof typeof REAL_GAMES;
@@ -170,6 +172,17 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
             isPaused={isPaused}
             onScoreChange={setScore}
             onLivesChange={handleLivesChange}
+            onLevelChange={setEngineLevel}
+            onPauseChange={setIsPaused}
+            onGameOver={() => setIsOver(true)}
+          />
+        );
+      case "snake":
+        return (
+          <SnakeCanvas
+            ref={gameRef}
+            isPaused={isPaused}
+            onScoreChange={setScore}
             onLevelChange={setEngineLevel}
             onPauseChange={setIsPaused}
             onGameOver={() => setIsOver(true)}
