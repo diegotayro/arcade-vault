@@ -908,6 +908,45 @@ a {
   text-shadow: 0 0 8px var(--cyan);
 }
 
+/* Muro de 8 columnas con un hueco en la tercera fila, bola y paleta con brillo amarillo */
+.cover-arkanoid {
+  background: linear-gradient(180deg, #120a24, #05050f);
+}
+.cover-arkanoid::after {
+  content: "";
+  position: absolute;
+  inset: 0 6%;
+  background:
+    radial-gradient(circle at 62% 66%, var(--yellow) 0 6px, transparent 7px),
+    linear-gradient(var(--yellow), var(--yellow)) left 36% top 88% / 28% 5%
+      no-repeat,
+    repeating-linear-gradient(
+        90deg,
+        #ff006e 0 calc(25% - 3px),
+        transparent calc(25% - 3px) 25%
+      )
+      right 0 top 36% / 50% 9% no-repeat,
+    repeating-linear-gradient(
+        90deg,
+        #ff006e 0 calc(33.3333% - 3px),
+        transparent calc(33.3333% - 3px) 33.3333%
+      )
+      left 0 top 36% / 37.5% 9% no-repeat,
+    repeating-linear-gradient(
+        90deg,
+        var(--yellow) 0 calc(12.5% - 3px),
+        transparent calc(12.5% - 3px) 12.5%
+      )
+      left 0 top 24% / 100% 9% no-repeat,
+    repeating-linear-gradient(
+        90deg,
+        #ff006e 0 calc(12.5% - 3px),
+        transparent calc(12.5% - 3px) 12.5%
+      )
+      left 0 top 12% / 100% 9% no-repeat;
+  filter: drop-shadow(0 0 6px rgba(245, 255, 0, 0.55));
+}
+
 .cover-rana {
   background: linear-gradient(180deg, #001f2a, #0a0a18);
 }
