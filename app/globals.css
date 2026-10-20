@@ -1191,6 +1191,19 @@ a {
   color: var(--yellow);
   text-shadow: 0 0 6px rgba(245, 255, 0, 0.5);
 }
+.skin-select {
+  font-family: var(--pixel);
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.skin-select:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
 .hud-actions {
   display: flex;
   flex-wrap: wrap;
