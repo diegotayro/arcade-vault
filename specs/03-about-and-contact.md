@@ -1,6 +1,6 @@
 # SPEC 03 — Pantalla "Sobre Nosotros" y envío de contacto con Resend
 
-> **Estado:** Aprovado
+> **Estado:** Implemented
 > **Depende de:** SPEC 01, SPEC 02
 > **Fecha:** 2026-10-18
 > **Objetivo:** Implementar en `/about` la pantalla de `references/templates/home-about/about.jsx` (sección "Acerca de" y formulario de contacto) y enviar el mensaje por correo con Resend mediante una Server Action.
