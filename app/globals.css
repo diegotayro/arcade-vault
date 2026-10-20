@@ -1271,7 +1271,8 @@ a {
 }
 
 /* canvas del juego real: resolución interna 800x600, escala fluida */
-.asteroids-canvas {
+.asteroids-canvas,
+.arkanoid-canvas {
   display: block;
   width: 100%;
   max-width: 100%;
