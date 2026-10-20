@@ -1,6 +1,6 @@
 # SPEC 06 — Tablas `games` y `leaderboard` con catálogo híbrido
 
-> **Estado:** Approved
+> **Estado:** Implemented
 > **Depende de:** SPEC 04, SPEC 05
 > **Fecha:** 2026-10-19
 > **Objetivo:** Crear las tablas `games` y `leaderboard` en Supabase, mover `asteroids` del catálogo hardcodeado a la tabla y alimentar todos los rankings de la UI desde `leaderboard`, mostrando un estado vacío cuando un juego no tiene puntuaciones, y permitir guardar puntajes de `asteroids` de forma anónima y temporal.

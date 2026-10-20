@@ -1,6 +1,6 @@
 # SPEC 05 — Juego Asteroides integrado en la plataforma
 
-> **Estado:** Aprobado
+> **Estado:** Implemented
 > **Depende de:** SPEC 01
 > **Fecha:** 2026-10-18
 > **Objetivo:** Portar el juego `references/started-games/02-asteroids/` a un motor TypeScript y jugarlo en `/games/asteroids/play`, con el HUD de la plataforma (puntaje, vidas, nivel, pausa, fin) alimentado por el motor.

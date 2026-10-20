@@ -4,15 +4,34 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { saveScore } from "@/app/games/[id]/play/actions";
-import { AsteroidsCanvas, type AsteroidsCanvasHandle } from "@/components/asteroids-canvas";
+import { AsteroidsCanvas } from "@/components/asteroids-canvas";
+import { TetrisCanvas } from "@/components/tetris-canvas";
 import { MIN_PLAYER_NAME_LENGTH } from "@/lib/score-rules";
+import type { TetrisTheme } from "@/lib/games/tetris/types";
 
 const INITIAL_LIVES = 3;
 const MAX_NAME_LENGTH = 10;
 const INVALID_NAME_MESSAGE = `El nombre debe tener entre ${MIN_PLAYER_NAME_LENGTH} y ${MAX_NAME_LENGTH} caracteres.`;
-const SAVE_FAILED_MESSAGE = "No se pudo guardar la puntuación. Inténtalo de nuevo.";
+const SAVE_FAILED_MESSAGE =
+  "No se pudo guardar la puntuación. Inténtalo de nuevo.";
 const SCORE_TICK_MS = 220;
 const POINTS_PER_LEVEL = 2500;
+const THEME_STORAGE_KEY = "tetris-theme";
+
+const REAL_GAMES = {
+  asteroids: { hasLives: true, hasThemeToggle: false },
+  tetris: { hasLives: false, hasThemeToggle: true },
+} as const;
+
+type RealGameId = keyof typeof REAL_GAMES;
+
+const isRealGameId = (gameId: string): gameId is RealGameId =>
+  gameId in REAL_GAMES;
+
+interface GameHandle {
+  endGame: () => void;
+  restart: () => void;
+}
 
 interface GamePlayerProps {
   gameId: string;
@@ -30,16 +49,36 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
   const [name, setName] = useState("INVITADO");
   const [isSaved, setIsSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [theme, setTheme] = useState<TetrisTheme>("dark");
   const [isSaving, startSaving] = useTransition();
 
-  const asteroidsRef = useRef<AsteroidsCanvasHandle>(null);
-  const isRealGame = gameId === "asteroids";
+  const gameRef = useRef<GameHandle>(null);
+  const realGame = isRealGameId(gameId) ? REAL_GAMES[gameId] : null;
+  const isRealGame = realGame !== null;
+  const showsFixedLife = realGame !== null && !realGame.hasLives;
 
-  const level = isRealGame ? engineLevel : 1 + Math.floor(score / POINTS_PER_LEVEL);
+  const level = isRealGame
+    ? engineLevel
+    : 1 + Math.floor(score / POINTS_PER_LEVEL);
+
+  // La preferencia se lee tras montar para no romper la hidratación
+  useEffect(() => {
+    try {
+      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      if (storedTheme !== "light") return;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única de localStorage tras la hidratación
+      setTheme("light");
+    } catch {
+      // Sin localStorage el juego sigue en oscuro
+    }
+  }, []);
 
   useEffect(() => {
     if (isRealGame || isOver || isPaused) return;
-    const timer = setInterval(() => setScore((current) => current + randomPoints()), SCORE_TICK_MS);
+    const timer = setInterval(
+      () => setScore((current) => current + randomPoints()),
+      SCORE_TICK_MS,
+    );
     return () => clearInterval(timer);
   }, [isRealGame, isOver, isPaused]);
 
@@ -53,8 +92,18 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
     }
   };
 
+  const toggleTheme = () => {
+    const nextTheme: TetrisTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch {
+      // La preferencia es solo un conveniente por navegador
+    }
+  };
+
   const endGame = () => {
-    if (isRealGame) asteroidsRef.current?.endGame();
+    if (isRealGame) gameRef.current?.endGame();
     else setIsOver(true);
   };
 
@@ -79,7 +128,7 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
   };
 
   const restart = () => {
-    asteroidsRef.current?.restart();
+    gameRef.current?.restart();
     setScore(0);
     setIsPaused(false);
     setIsOver(false);
@@ -92,11 +141,23 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
       case "asteroids":
         return (
           <AsteroidsCanvas
-            ref={asteroidsRef}
+            ref={gameRef}
             isPaused={isPaused}
             onScoreChange={setScore}
             onLivesChange={handleLivesChange}
             onLevelChange={setEngineLevel}
+            onGameOver={() => setIsOver(true)}
+          />
+        );
+      case "tetris":
+        return (
+          <TetrisCanvas
+            ref={gameRef}
+            isPaused={isPaused}
+            theme={theme}
+            onScoreChange={setScore}
+            onLevelChange={setEngineLevel}
+            onPauseChange={setIsPaused}
             onGameOver={() => setIsOver(true)}
           />
         );
@@ -119,7 +180,9 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
           <div className="hud-stat">
             <div className="l">Jugador</div>
-            <div className="v" style={{ color: "var(--ink)" }}>{name}</div>
+            <div className="v" style={{ color: "var(--ink)" }}>
+              {name}
+            </div>
           </div>
           <div className="hud-stat">
             <div className="l">Puntuación</div>
@@ -127,7 +190,9 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           </div>
           <div className="hud-stat lives">
             <div className="l">Vidas</div>
-            <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
+            <div className="v">
+              {showsFixedLife ? "♥" : "♥ ".repeat(lives).trim() || "—"}
+            </div>
           </div>
           <div className="hud-stat level">
             <div className="l">Nivel</div>
@@ -135,11 +200,24 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           </div>
         </div>
         <div className="hud-actions">
-          <button type="button" className="btn yellow" onClick={() => setIsPaused((paused) => !paused)}>
+          <button
+            type="button"
+            className="btn yellow"
+            onClick={() => setIsPaused((paused) => !paused)}
+          >
             {isPaused ? "REANUDAR" : "PAUSA"}
           </button>
-          <button type="button" className="btn magenta" onClick={endGame}>FIN</button>
-          <Link href={`/games/${gameId}`} className="btn ghost">SALIR</Link>
+          {realGame?.hasThemeToggle && (
+            <button type="button" className="btn" onClick={toggleTheme}>
+              TEMA
+            </button>
+          )}
+          <button type="button" className="btn magenta" onClick={endGame}>
+            FIN
+          </button>
+          <Link href={`/games/${gameId}`} className="btn ghost">
+            SALIR
+          </Link>
         </div>
       </div>
 
@@ -147,10 +225,23 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
         <div className="crt-screen">
           {renderGame()}
           {isPaused && (
-            <div className="crt-content" style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}>
+            <div
+              className="crt-content"
+              style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
+            >
               <div>
-                <div className="pixel neon-yellow" style={{ fontSize: 22 }}>EN PAUSA</div>
-                <div className="mono" style={{ fontSize: 11, color: "var(--ink-dim)", marginTop: 10, letterSpacing: "0.16em" }}>
+                <div className="pixel neon-yellow" style={{ fontSize: 22 }}>
+                  EN PAUSA
+                </div>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: 11,
+                    color: "var(--ink-dim)",
+                    marginTop: 10,
+                    letterSpacing: "0.16em",
+                  }}
+                >
                   PULSA REANUDAR PARA CONTINUAR
                 </div>
               </div>
@@ -176,22 +267,41 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
               <div className="input-row">
                 <input
                   value={name}
-                  onChange={(event) => setName(event.target.value.toUpperCase().slice(0, MAX_NAME_LENGTH))}
+                  onChange={(event) =>
+                    setName(
+                      event.target.value
+                        .toUpperCase()
+                        .slice(0, MAX_NAME_LENGTH),
+                    )
+                  }
                   placeholder="TUS INICIALES"
                 />
-                <button type="button" className="btn yellow" onClick={handleSave} disabled={isSaving}>
+                <button
+                  type="button"
+                  className="btn yellow"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
                   {isSaving ? "GUARDANDO…" : "GUARDAR PUNTUACIÓN"}
                 </button>
               </div>
             )}
             {saveError && (
-              <div role="alert" className="mono" style={{ color: "var(--magenta)", fontSize: 12, marginTop: 12 }}>
+              <div
+                role="alert"
+                className="mono"
+                style={{ color: "var(--magenta)", fontSize: 12, marginTop: 12 }}
+              >
                 {saveError}
               </div>
             )}
             <div className="actions">
-              <button type="button" className="btn" onClick={restart}>JUGAR DE NUEVO</button>
-              <Link href="/games" className="btn magenta">VOLVER AL VAULT</Link>
+              <button type="button" className="btn" onClick={restart}>
+                JUGAR DE NUEVO
+              </button>
+              <Link href="/games" className="btn magenta">
+                VOLVER AL VAULT
+              </Link>
             </div>
           </div>
         </div>

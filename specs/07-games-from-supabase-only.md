@@ -1,6 +1,6 @@
 # SPEC 07 — Catálogo de juegos solo desde Supabase
 
-> **Estado:** Approved
+> **Estado:** Implemented
 > **Depende de:** SPEC 06
 > **Fecha:** 2026-10-19
 > **Objetivo:** Eliminar los juegos hardcodeados de `lib/games.ts` para que toda la aplicación consuma únicamente los juegos de la tabla `games` de Supabase (hoy solo `asteroids`), mostrando un estado vacío cuando no hay juegos o Supabase falla.
