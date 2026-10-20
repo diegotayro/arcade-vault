@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 import { saveScore } from "@/app/games/[id]/play/actions";
 import { AsteroidsCanvas, type AsteroidsCanvasHandle } from "@/components/asteroids-canvas";
+import { TetrisCanvas } from "@/components/tetris-canvas";
 import { MIN_PLAYER_NAME_LENGTH } from "@/lib/score-rules";
 
 const INITIAL_LIVES = 3;
@@ -97,6 +98,17 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
             onScoreChange={setScore}
             onLivesChange={handleLivesChange}
             onLevelChange={setEngineLevel}
+            onGameOver={() => setIsOver(true)}
+          />
+        );
+      case "tetris":
+        return (
+          <TetrisCanvas
+            isPaused={isPaused}
+            theme="dark"
+            onScoreChange={setScore}
+            onLevelChange={setEngineLevel}
+            onPauseChange={setIsPaused}
             onGameOver={() => setIsOver(true)}
           />
         );
