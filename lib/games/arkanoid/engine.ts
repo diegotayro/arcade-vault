@@ -19,6 +19,7 @@ import {
 } from "./entities";
 import { createInput } from "./input";
 import { LEVELS } from "./levels";
+import { renderScene } from "./render";
 import { loadSpritesheet } from "./sprites";
 import type {
   ArkanoidCallbacks,
@@ -228,9 +229,18 @@ export function createArkanoidEngine(
   }
 
   function draw() {
-    // El dibujo se conecta con render.ts en el paso 9
-    void ctx;
-    void spritesheet;
+    if (!spritesheet) return;
+    renderScene(ctx, {
+      image: spritesheet,
+      blocks,
+      explosions,
+      paddle,
+      ball,
+      score,
+      lives,
+      level,
+      state,
+    });
   }
 
   // ── Loop principal ──────────────────────────────────────────────────────────
