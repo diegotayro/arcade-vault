@@ -19,6 +19,7 @@ import {
   rotateCW,
 } from "./entities";
 import { createInput } from "./input";
+import { drawFrame } from "./render";
 import type { InputAction } from "./input";
 import type {
   ActivePiece,
@@ -41,6 +42,10 @@ export function createTetrisEngine(
   canvas: HTMLCanvasElement,
   callbacks: TetrisCallbacks,
 ): TetrisEngine {
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Canvas 2D context is not available");
+  const ctx: CanvasRenderingContext2D = context;
+
   let board: Board = createBoard();
   let current: ActivePiece = randomPiece();
   let next: ActivePiece = randomPiece();
@@ -192,9 +197,18 @@ export function createTetrisEngine(
     syncCallbacks();
   }
 
-  // El dibujo real se conecta en render.ts
   function draw() {
-    void theme;
+    drawFrame(ctx, {
+      board,
+      current,
+      ghostY: ghostY(),
+      next,
+      score,
+      lines,
+      level,
+      gameOver,
+      theme,
+    });
   }
 
   // ── Loop principal ──────────────────────────────────────────────────────────
