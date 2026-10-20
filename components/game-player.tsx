@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { saveScore } from "@/app/games/[id]/play/actions";
+import { ArkanoidCanvas } from "@/components/arkanoid-canvas";
 import { AsteroidsCanvas } from "@/components/asteroids-canvas";
 import { TetrisCanvas } from "@/components/tetris-canvas";
 import { MIN_PLAYER_NAME_LENGTH } from "@/lib/score-rules";
@@ -21,6 +22,7 @@ const THEME_STORAGE_KEY = "tetris-theme";
 const REAL_GAMES = {
   asteroids: { hasLives: true, hasThemeToggle: false },
   tetris: { hasLives: false, hasThemeToggle: true },
+  arkanoid: { hasLives: true, hasThemeToggle: false },
 } as const;
 
 type RealGameId = keyof typeof REAL_GAMES;
@@ -156,6 +158,18 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
             isPaused={isPaused}
             theme={theme}
             onScoreChange={setScore}
+            onLevelChange={setEngineLevel}
+            onPauseChange={setIsPaused}
+            onGameOver={() => setIsOver(true)}
+          />
+        );
+      case "arkanoid":
+        return (
+          <ArkanoidCanvas
+            ref={gameRef}
+            isPaused={isPaused}
+            onScoreChange={setScore}
+            onLivesChange={handleLivesChange}
             onLevelChange={setEngineLevel}
             onPauseChange={setIsPaused}
             onGameOver={() => setIsOver(true)}
