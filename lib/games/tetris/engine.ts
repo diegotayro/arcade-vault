@@ -1,5 +1,6 @@
 import {
   BASE_DROP_INTERVAL,
+  DEFAULT_SKIN,
   DROP_INTERVAL_STEP,
   HARD_DROP_POINTS,
   HEIGHT,
@@ -26,7 +27,7 @@ import type {
   Board,
   TetrisCallbacks,
   TetrisEngine,
-  TetrisTheme,
+  TetrisSkin,
 } from "./types";
 
 const levelFromLines = (lines: number) =>
@@ -55,7 +56,7 @@ export function createTetrisEngine(
   let dropInterval = BASE_DROP_INTERVAL;
   let dropAccumulator = 0;
   let gameOver = false;
-  let theme: TetrisTheme = "dark";
+  let skin: TetrisSkin = DEFAULT_SKIN;
 
   let started = false;
   let destroyed = false;
@@ -207,7 +208,7 @@ export function createTetrisEngine(
       lines,
       level,
       gameOver,
-      theme,
+      skin,
     });
   }
 
@@ -304,8 +305,8 @@ export function createTetrisEngine(
       document.removeEventListener("visibilitychange", onVisibilityChange);
     },
 
-    setTheme(newTheme) {
-      theme = newTheme;
+    setSkin(newSkin) {
+      skin = newSkin;
       if (started && !destroyed) draw();
     },
   };

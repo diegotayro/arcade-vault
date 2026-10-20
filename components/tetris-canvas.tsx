@@ -7,7 +7,7 @@ import { createTetrisEngine } from "@/lib/games/tetris/engine";
 import type {
   TetrisCallbacks,
   TetrisEngine,
-  TetrisTheme,
+  TetrisSkin,
 } from "@/lib/games/tetris/types";
 
 export interface TetrisCanvasHandle {
@@ -17,13 +17,13 @@ export interface TetrisCanvasHandle {
 
 interface TetrisCanvasProps extends TetrisCallbacks {
   isPaused: boolean;
-  theme: TetrisTheme;
+  skin: TetrisSkin;
   ref?: Ref<TetrisCanvasHandle>;
 }
 
 export function TetrisCanvas({
   isPaused,
-  theme,
+  skin,
   ref,
   onScoreChange,
   onLevelChange,
@@ -69,8 +69,8 @@ export function TetrisCanvas({
   }, []);
 
   useEffect(() => {
-    engineRef.current?.setTheme(theme);
-  }, [theme]);
+    engineRef.current?.setSkin(skin);
+  }, [skin]);
 
   // El motor ignora pause/resume redundantes, así que no hay bucle con onPauseChange
   useEffect(() => {

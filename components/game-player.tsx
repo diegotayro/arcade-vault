@@ -9,7 +9,14 @@ import { AsteroidsCanvas } from "@/components/asteroids-canvas";
 import { SnakeCanvas } from "@/components/snake-canvas";
 import { TetrisCanvas } from "@/components/tetris-canvas";
 import { MIN_PLAYER_NAME_LENGTH } from "@/lib/score-rules";
-import type { TetrisTheme } from "@/lib/games/tetris/types";
+import {
+  DEFAULT_SKIN,
+  SKIN_OPTIONS,
+  SKIN_STORAGE_KEY,
+  SKINS,
+  isTetrisSkin,
+} from "@/lib/games/tetris/constants";
+import type { TetrisSkin } from "@/lib/games/tetris/types";
 
 const INITIAL_LIVES = 3;
 const MAX_NAME_LENGTH = 10;
@@ -18,13 +25,12 @@ const SAVE_FAILED_MESSAGE =
   "No se pudo guardar la puntuación. Inténtalo de nuevo.";
 const SCORE_TICK_MS = 220;
 const POINTS_PER_LEVEL = 2500;
-const THEME_STORAGE_KEY = "tetris-theme";
 
 const REAL_GAMES = {
-  asteroids: { hasLives: true, hasThemeToggle: false },
-  tetris: { hasLives: false, hasThemeToggle: true },
-  arkanoid: { hasLives: true, hasThemeToggle: false },
-  snake: { hasLives: false, hasThemeToggle: false },
+  asteroids: { hasLives: true, hasSkinSelector: false },
+  tetris: { hasLives: false, hasSkinSelector: true },
+  arkanoid: { hasLives: true, hasSkinSelector: false },
+  snake: { hasLives: false, hasSkinSelector: false },
 } as const;
 
 type RealGameId = keyof typeof REAL_GAMES;
@@ -53,7 +59,7 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
   const [name, setName] = useState("INVITADO");
   const [isSaved, setIsSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [theme, setTheme] = useState<TetrisTheme>("dark");
+  const [skin, setSkin] = useState<TetrisSkin>(DEFAULT_SKIN);
   const [isSaving, startSaving] = useTransition();
 
   const gameRef = useRef<GameHandle>(null);
@@ -68,12 +74,12 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
   // La preferencia se lee tras montar para no romper la hidratación
   useEffect(() => {
     try {
-      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      if (storedTheme !== "light") return;
+      const storedSkin = localStorage.getItem(SKIN_STORAGE_KEY);
+      if (!isTetrisSkin(storedSkin)) return;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única de localStorage tras la hidratación
-      setTheme("light");
+      setSkin(storedSkin);
     } catch {
-      // Sin localStorage el juego sigue en oscuro
+      // Sin localStorage el juego sigue con la skin por defecto
     }
   }, []);
 
@@ -96,11 +102,10 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
     }
   };
 
-  const toggleTheme = () => {
-    const nextTheme: TetrisTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
+  const changeSkin = (nextSkin: TetrisSkin) => {
+    setSkin(nextSkin);
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+      localStorage.setItem(SKIN_STORAGE_KEY, nextSkin);
     } catch {
       // La preferencia es solo un conveniente por navegador
     }
@@ -158,7 +163,7 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           <TetrisCanvas
             ref={gameRef}
             isPaused={isPaused}
-            theme={theme}
+            skin={skin}
             onScoreChange={setScore}
             onLevelChange={setEngineLevel}
             onPauseChange={setIsPaused}
@@ -225,6 +230,27 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
             <div className="l">Nivel</div>
             <div className="v">{String(level).padStart(2, "0")}</div>
           </div>
+          {realGame?.hasSkinSelector && (
+            <div className="hud-stat skin">
+              <label className="l" htmlFor="tetris-skin">
+                Skin
+              </label>
+              <select
+                id="tetris-skin"
+                className="skin-select"
+                value={skin}
+                onChange={(event) =>
+                  changeSkin(event.target.value as TetrisSkin)
+                }
+              >
+                {SKIN_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {SKINS[option].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <div className="hud-actions">
           <button
@@ -234,11 +260,6 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           >
             {isPaused ? "REANUDAR" : "PAUSA"}
           </button>
-          {realGame?.hasThemeToggle && (
-            <button type="button" className="btn" onClick={toggleTheme}>
-              TEMA
-            </button>
-          )}
           <button type="button" className="btn magenta" onClick={endGame}>
             FIN
           </button>

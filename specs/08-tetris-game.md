@@ -3,6 +3,7 @@
 > **Estado:** Approved
 > **Depende de:** SPEC 05, SPEC 06, SPEC 07
 > **Fecha:** 2026-10-19
+> **Corregida por:** SPEC 11 (reemplaza el tema claro/oscuro y el botón TEMA por skins, y retira la pieza «N»).
 > **Objetivo:** Portar `references/started-games/03-tetris/` a un motor TypeScript, registrarlo en `games` y jugarlo en `/games/tetris/play` con HUD de la plataforma, pausa, botón TEMA y guardado de puntaje en `leaderboard`.
 
 ## Alcance

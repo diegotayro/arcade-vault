@@ -12,12 +12,13 @@ export interface TetrisEngine {
   endGame: () => void; // fuerza game over (botón FIN)
   restart: () => void;
   destroy: () => void; // cancela rAF y quita listeners
-  setTheme: (theme: TetrisTheme) => void;
+  setSkin: (skin: TetrisSkin) => void;
 }
 
-export type TetrisTheme = "dark" | "light";
+export type TetrisSkin = "retro" | "neon" | "pastel" | "pixel";
+export type BlockStyle = "bevel" | "glow" | "soft" | "pixel";
 
-export type PieceType = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8; // I O T S Z J L N
+export type PieceType = 1 | 2 | 3 | 4 | 5 | 6 | 7; // I O T S Z J L
 export type Cell = 0 | PieceType;
 export type Board = Cell[][];
 
@@ -28,10 +29,13 @@ export interface ActivePiece {
   y: number;
 }
 
-export interface ThemePalette {
+export interface SkinDefinition {
+  label: string;
+  pieceColors: readonly (string | null)[]; // índice 0 vacío, 1..7
   canvasBackground: string;
   gridLine: string;
-  label: string;
+  labelText: string;
   text: string;
   overlayBackground: string;
+  blockStyle: BlockStyle;
 }
