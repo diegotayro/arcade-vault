@@ -8,6 +8,8 @@ import { ArkanoidCanvas } from "@/components/arkanoid-canvas";
 import { AsteroidsCanvas } from "@/components/asteroids-canvas";
 import { SnakeCanvas } from "@/components/snake-canvas";
 import { TetrisCanvas } from "@/components/tetris-canvas";
+import { TouchGamepad } from "@/components/touch-gamepad";
+import { getTouchLayout } from "@/lib/games/touch-controls";
 import { MIN_PLAYER_NAME_LENGTH } from "@/lib/score-rules";
 import {
   DEFAULT_SKIN_ID,
@@ -66,6 +68,8 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
   const realGame = isRealGameId(gameId) ? REAL_GAMES[gameId] : null;
   const isRealGame = realGame !== null;
   const showsFixedLife = realGame !== null && !realGame.hasLives;
+
+  const touchLayout = getTouchLayout(gameId);
 
   const level = isRealGame
     ? engineLevel
@@ -144,6 +148,28 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
     setIsSaved(false);
     setSaveError(null);
   };
+
+  const renderSkinSelect = (id: string) => (
+    <div className="hud-stat skin">
+      <label className="l" htmlFor={id}>
+        Skin
+      </label>
+      <select
+        id={id}
+        className="skin-select"
+        value={skin}
+        onChange={(event) => changeSkin(event.target.value)}
+      >
+        {SKIN_IDS.map((option) => (
+          <option key={option} value={option}>
+            {SKIN_LABELS[option]}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
+  const togglePause = () => setIsPaused((paused) => !paused);
 
   const renderGame = () => {
     switch (gameId) {
@@ -233,32 +259,10 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
             <div className="l">Nivel</div>
             <div className="v">{String(level).padStart(2, "0")}</div>
           </div>
-          {realGame?.hasSkinSelector && (
-            <div className="hud-stat skin">
-              <label className="l" htmlFor="game-skin">
-                Skin
-              </label>
-              <select
-                id="game-skin"
-                className="skin-select"
-                value={skin}
-                onChange={(event) => changeSkin(event.target.value)}
-              >
-                {SKIN_IDS.map((option) => (
-                  <option key={option} value={option}>
-                    {SKIN_LABELS[option]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          {realGame?.hasSkinSelector && renderSkinSelect("game-skin")}
         </div>
         <div className="hud-actions">
-          <button
-            type="button"
-            className="btn yellow"
-            onClick={() => setIsPaused((paused) => !paused)}
-          >
+          <button type="button" className="btn yellow" onClick={togglePause}>
             {isPaused ? "REANUDAR" : "PAUSA"}
           </button>
           <button type="button" className="btn magenta" onClick={endGame}>
@@ -270,38 +274,56 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
         </div>
       </div>
 
-      <div className="crt">
-        <div className="crt-screen">
-          {renderGame()}
-          {isPaused && (
-            <div
-              className="crt-content"
-              style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
-            >
-              <div>
-                <div className="pixel neon-yellow" style={{ fontSize: 22 }}>
-                  EN PAUSA
-                </div>
-                <div
-                  className="mono"
-                  style={{
-                    fontSize: 11,
-                    color: "var(--ink-dim)",
-                    marginTop: 10,
-                    letterSpacing: "0.16em",
-                  }}
-                >
-                  PULSA REANUDAR PARA CONTINUAR
+      <div className="player-stage">
+        <div className="crt">
+          <div className="crt-screen">
+            {renderGame()}
+            {isPaused && (
+              <div
+                className="crt-content"
+                style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
+              >
+                <div>
+                  <div className="pixel neon-yellow" style={{ fontSize: 22 }}>
+                    EN PAUSA
+                  </div>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: 11,
+                      color: "var(--ink-dim)",
+                      marginTop: 10,
+                      letterSpacing: "0.16em",
+                    }}
+                  >
+                    PULSA REANUDAR PARA CONTINUAR
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          <div className="crt-bottom">
+            <span className="led">SEÑAL OK</span>
+            <span>{gameTitle} · CRT-83 · 60 HZ</span>
+            <span>CARGA · 1MB</span>
+          </div>
         </div>
-        <div className="crt-bottom">
-          <span className="led">SEÑAL OK</span>
-          <span>{gameTitle} · CRT-83 · 60 HZ</span>
-          <span>CARGA · 1MB</span>
-        </div>
+        {touchLayout && (
+          <TouchGamepad layout={touchLayout} isPaused={isPaused} />
+        )}
+      </div>
+
+      <div className="player-footer">
+        <button type="button" className="btn yellow" onClick={togglePause}>
+          {isPaused ? "REANUDAR" : "PAUSA"}
+        </button>
+        <button type="button" className="btn magenta" onClick={endGame}>
+          FIN
+        </button>
+        <Link href={`/games/${gameId}`} className="btn ghost">
+          SALIR
+        </Link>
+        {realGame?.hasSkinSelector && renderSkinSelect("game-skin-footer")}
       </div>
 
       {isOver && (
