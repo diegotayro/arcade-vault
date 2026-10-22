@@ -1,3 +1,5 @@
+import type { SkinId } from "@/lib/games/skins";
+
 export interface TetrisCallbacks {
   onScoreChange: (score: number) => void;
   onLevelChange: (level: number) => void;
@@ -15,7 +17,7 @@ export interface TetrisEngine {
   setSkin: (skin: TetrisSkin) => void;
 }
 
-export type TetrisSkin = "retro" | "neon" | "pastel" | "pixel";
+export type TetrisSkin = SkinId;
 export type BlockStyle = "bevel" | "glow" | "soft" | "pixel";
 
 export type PieceType = 1 | 2 | 3 | 4 | 5 | 6 | 7; // I O T S Z J L
@@ -30,7 +32,6 @@ export interface ActivePiece {
 }
 
 export interface SkinDefinition {
-  label: string;
   pieceColors: readonly (string | null)[]; // índice 0 vacío, 1..7
   canvasBackground: string;
   gridLine: string;

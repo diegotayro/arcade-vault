@@ -7,6 +7,7 @@ import { createAsteroidsEngine } from "@/lib/games/asteroids/engine";
 import type {
   AsteroidsCallbacks,
   AsteroidsEngine,
+  AsteroidsSkin,
 } from "@/lib/games/asteroids/types";
 
 export interface AsteroidsCanvasHandle {
@@ -16,11 +17,13 @@ export interface AsteroidsCanvasHandle {
 
 interface AsteroidsCanvasProps extends AsteroidsCallbacks {
   isPaused: boolean;
+  skin: AsteroidsSkin;
   ref?: Ref<AsteroidsCanvasHandle>;
 }
 
 export function AsteroidsCanvas({
   isPaused,
+  skin,
   ref,
   onScoreChange,
   onLivesChange,
@@ -64,6 +67,10 @@ export function AsteroidsCanvas({
       engineRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    engineRef.current?.setSkin(skin);
+  }, [skin]);
 
   useEffect(() => {
     if (isPaused) engineRef.current?.pause();

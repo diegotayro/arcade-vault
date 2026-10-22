@@ -1,3 +1,5 @@
+import { DEFAULT_SKIN_ID } from "@/lib/games/skins";
+
 import type { SkinDefinition, TetrisSkin } from "./types";
 
 export const COLS = 10;
@@ -73,13 +75,11 @@ export const MIN_DROP_INTERVAL = 100;
 
 export const GHOST_ALPHA = 0.2;
 
-export const SKIN_STORAGE_KEY = "tetris-skin";
-export const DEFAULT_SKIN: TetrisSkin = "retro";
+export const DEFAULT_SKIN: TetrisSkin = DEFAULT_SKIN_ID;
 
 // pieceColors indexado por tipo de pieza (índice 0 vacío)
 export const SKINS: Record<TetrisSkin, SkinDefinition> = {
   retro: {
-    label: "RETRO",
     pieceColors: [
       null,
       "#4dd0e1", // I
@@ -99,7 +99,6 @@ export const SKINS: Record<TetrisSkin, SkinDefinition> = {
     blockStyle: "bevel",
   },
   neon: {
-    label: "NEON",
     pieceColors: [
       null,
       "#00f5ff",
@@ -118,7 +117,6 @@ export const SKINS: Record<TetrisSkin, SkinDefinition> = {
     blockStyle: "glow",
   },
   pastel: {
-    label: "PASTEL",
     pieceColors: [
       null,
       "#a8e6e2",
@@ -137,7 +135,6 @@ export const SKINS: Record<TetrisSkin, SkinDefinition> = {
     blockStyle: "soft",
   },
   pixel: {
-    label: "PIXEL ART",
     pieceColors: [
       null,
       "#2ce8f5",
@@ -156,11 +153,6 @@ export const SKINS: Record<TetrisSkin, SkinDefinition> = {
     blockStyle: "pixel",
   },
 };
-
-export const SKIN_OPTIONS = Object.keys(SKINS) as TetrisSkin[];
-
-export const isTetrisSkin = (value: unknown): value is TetrisSkin =>
-  typeof value === "string" && value in SKINS;
 
 export const CONTROLS_HELP = [
   "← →  Mover",
