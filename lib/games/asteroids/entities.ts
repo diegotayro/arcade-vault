@@ -46,13 +46,6 @@ export class Bullet {
     this.ttl -= dt;
     if (this.ttl <= 0) this.dead = true;
   }
-
-  draw(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, FULL_CIRCLE);
-    ctx.fill();
-  }
 }
 
 export class Asteroid {
@@ -108,23 +101,6 @@ export class Asteroid {
       new Asteroid(this.x, this.y, smaller),
     ];
   }
-
-  draw(ctx: CanvasRenderingContext2D) {
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(this.rot);
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1.5;
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.moveTo(this.verts[0][0], this.verts[0][1]);
-    for (let i = 1; i < this.verts.length; i++) {
-      ctx.lineTo(this.verts[i][0], this.verts[i][1]);
-    }
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
-  }
 }
 
 export class PowerUp {
@@ -150,24 +126,6 @@ export class PowerUp {
     this.y = wrap(this.y + this.vy * dt, HEIGHT);
     this.ttl -= dt;
     if (this.ttl <= 0) this.dead = true;
-  }
-
-  draw(ctx: CanvasRenderingContext2D) {
-    if (this.ttl < 2 && Math.floor(this.ttl * 8) % 2 === 0) return;
-    const pulse = 0.85 + Math.sin(performance.now() / 150) * 0.15;
-    const r = this.radius * pulse;
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(Math.PI / 4);
-    ctx.strokeStyle = "#0ff";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-r, -r, r * 2, r * 2);
-    ctx.restore();
-    ctx.fillStyle = "#0ff";
-    ctx.font = "bold 12px monospace";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("3x", this.x, this.y);
   }
 }
 
@@ -237,41 +195,6 @@ export class Ship {
     }
     return [new Bullet(originX, originY, this.angle)];
   }
-
-  draw(ctx: CanvasRenderingContext2D) {
-    if (this.dead) return;
-    // Parpadeo durante invencibilidad de reaparición
-    if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0)
-      return;
-
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(this.angle);
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1.5;
-    ctx.lineJoin = "round";
-
-    // Silueta clásica: triángulo con muesca trasera
-    ctx.beginPath();
-    ctx.moveTo(20, 0); // nariz
-    ctx.lineTo(-12, -9); // ala izquierda
-    ctx.lineTo(-7, 0); // muesca trasera
-    ctx.lineTo(-12, 9); // ala derecha
-    ctx.closePath();
-    ctx.stroke();
-
-    // Llama del propulsor
-    if (this.thrusting && Math.random() > 0.35) {
-      ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - rand(6, 14), 0);
-      ctx.lineTo(-8, 4);
-      ctx.strokeStyle = "rgba(255, 130, 0, 0.85)";
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
 }
 
 export class Particle {
@@ -297,15 +220,5 @@ export class Particle {
     this.y += this.vy * dt;
     this.ttl -= dt;
     if (this.ttl <= 0) this.dead = true;
-  }
-
-  draw(ctx: CanvasRenderingContext2D) {
-    const alpha = this.ttl / this.life;
-    ctx.strokeStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y);
-    ctx.lineTo(this.x - this.vx * 0.05, this.y - this.vy * 0.05);
-    ctx.stroke();
   }
 }

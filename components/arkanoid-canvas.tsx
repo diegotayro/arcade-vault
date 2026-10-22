@@ -7,6 +7,7 @@ import { createArkanoidEngine } from "@/lib/games/arkanoid/engine";
 import type {
   ArkanoidCallbacks,
   ArkanoidEngine,
+  ArkanoidSkin,
 } from "@/lib/games/arkanoid/types";
 
 export interface ArkanoidCanvasHandle {
@@ -16,11 +17,13 @@ export interface ArkanoidCanvasHandle {
 
 interface ArkanoidCanvasProps extends ArkanoidCallbacks {
   isPaused: boolean;
+  skin: ArkanoidSkin;
   ref?: Ref<ArkanoidCanvasHandle>;
 }
 
 export function ArkanoidCanvas({
   isPaused,
+  skin,
   ref,
   onScoreChange,
   onLivesChange,
@@ -68,6 +71,11 @@ export function ArkanoidCanvas({
       engineRef.current = null;
     };
   }, []);
+
+  // Se declara tras crear el motor: también aplica la skin inicial
+  useEffect(() => {
+    engineRef.current?.setSkin(skin);
+  }, [skin]);
 
   // El motor ignora pause/resume redundantes, así que no hay bucle con onPauseChange
   useEffect(() => {

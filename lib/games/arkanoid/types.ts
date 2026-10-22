@@ -1,3 +1,5 @@
+import type { SkinId } from "@/lib/games/skins";
+
 export interface ArkanoidCallbacks {
   onScoreChange: (score: number) => void;
   onLivesChange: (lives: number) => void;
@@ -13,6 +15,7 @@ export interface ArkanoidEngine {
   endGame: () => void; // fuerza game over (botón FIN)
   restart: () => void;
   destroy: () => void; // cancela rAF y quita listeners
+  setSkin: (skin: ArkanoidSkin) => void;
 }
 
 export type ArkanoidState = "playing" | "gameover" | "win";
@@ -64,3 +67,31 @@ export interface Level {
   speed: number;
   blocks: LevelBlock[];
 }
+
+export type ArkanoidSkin = SkinId;
+export type VectorStyle = "glow" | "soft" | "pixel";
+export type DrawStyle = "sprite" | VectorStyle;
+
+// main: relleno o tono claro; shade: contorno, glow o tono oscuro
+export interface Tones {
+  main: string;
+  shade: string;
+}
+
+export interface VectorPalette {
+  blocks: Record<BlockColor, Tones>;
+  paddle: Tones;
+  ball: Tones;
+}
+
+interface SkinBase {
+  background: string;
+  text: string;
+  overlay: string;
+}
+
+// "sprite" usa el spritesheet original; el resto dibuja formas con su paleta
+export type SkinDefinition = SkinBase &
+  (
+    { drawStyle: "sprite" } | { drawStyle: VectorStyle; palette: VectorPalette }
+  );

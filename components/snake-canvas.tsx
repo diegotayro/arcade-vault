@@ -7,6 +7,7 @@ import { createSnakeEngine } from "@/lib/games/snake/engine";
 import type {
   SnakeCallbacks,
   SnakeEngine,
+  SnakeSkin,
 } from "@/lib/games/snake/types";
 
 export interface SnakeCanvasHandle {
@@ -16,11 +17,13 @@ export interface SnakeCanvasHandle {
 
 interface SnakeCanvasProps extends SnakeCallbacks {
   isPaused: boolean;
+  skin: SnakeSkin;
   ref?: Ref<SnakeCanvasHandle>;
 }
 
 export function SnakeCanvas({
   isPaused,
+  skin,
   ref,
   onScoreChange,
   onLevelChange,
@@ -31,7 +34,7 @@ export function SnakeCanvas({
   const engineRef = useRef<SnakeEngine | null>(null);
   const callbacksRef = useRef<SnakeCallbacks>({
     onScoreChange,
-      onLevelChange,
+    onLevelChange,
     onPauseChange,
     onGameOver,
   });
@@ -40,7 +43,7 @@ export function SnakeCanvas({
   useEffect(() => {
     callbacksRef.current = {
       onScoreChange,
-          onLevelChange,
+      onLevelChange,
       onPauseChange,
       onGameOver,
     };
@@ -64,6 +67,10 @@ export function SnakeCanvas({
       engineRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    engineRef.current?.setSkin(skin);
+  }, [skin]);
 
   // El motor ignora pause/resume redundantes, así que no hay bucle con onPauseChange
   useEffect(() => {

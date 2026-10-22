@@ -40,8 +40,9 @@ Next.js 16.4.2 / React 19.3 con breaking changes respecto a lo que conoce el mod
 - `lib/games/<juego>/` — motor de cada juego (ver «Juegos»).
 - `lib/games.ts` (tipos), `lib/games-source.ts` (lectura del catálogo), `lib/leaderboard.ts` (rankings), `lib/score-rules.ts` (validación compartida cliente/servidor), `lib/contact.ts`, `lib/home.ts`.
 - `lib/supabase/` — `client.ts`, `server.ts` y `database.types.ts` (regenerable con el MCP de Supabase).
-- `specs/` — specs 01–11 y `.spec-config.yml` (`AutoCreateBranch: true`).
-- `references/` — material de apoyo, **no es código de la app** (excluido de los hooks): `started-games/` (juegos originales a portar), `templates/` (diseños HTML/JSX) y `source-assets/`.
+- `specs/` — specs 01–11, `.spec-config.yml` (`AutoCreateBranch: true`) y `game-jam/<game-id>/` (specs alternativas generadas por el agente `game-jam`).
+- `references/` — material de apoyo, **no es código de la app** (excluido de los hooks): `started-games/` (juegos originales a portar), `templates/` (diseños HTML/JSX), `source-assets/`, `implemented-games.md` (catálogo implementado), `game-with-skins.md` (juegos con skins, lo mantiene el agente `skin-designer`) y `game-suggestions-todo.md` (To Do de sugerencias, lo mantiene el agente `game-planner`).
+- `.claude/` — `settings.json`, `hooks/`, `skills/add-game/`, `agents/game-planner.md`, `agents/game-jam.md`, `agents/skin-designer.md` y `agent-memory/game-planner/` (memoria del agente, versionada).
 - `public/games/<juego>/` — assets estáticos (sprites, sonidos) de Arkanoid y Snake.
 - `supabase/migrations/` — migraciones SQL versionadas.
 
@@ -53,13 +54,14 @@ Cada juego sigue el mismo patrón (definido en las specs 05–07):
 - `components/<id>-canvas.tsx` (`"use client"`): crea el motor en `useEffect`, lo destruye al desmontar, aplica `isPaused` y expone `endGame`/`restart` por `ref`.
 - Los assets no se cargan al importar el módulo (SSR).
 - `components/game-player.tsx` registra el juego en `REAL_GAMES` (`hasLives`, `hasSkinSelector`) y lo renderiza en `renderGame`. HUD: puntaje, nivel y vidas (un «♥» fijo si `hasLives` es falso); `P`/`Esc` y el botón PAUSA deben quedar sincronizados.
+- Skins: los 4 juegos tienen selector de **skins** (retro, neon, pastel, pixel), por defecto `retro`. Lo común está en `lib/games/skins.ts` (`SkinId`, `skinStorageKey`); `GamePlayer` persiste la elección en `localStorage["<id>-skin"]` y la pasa al canvas, que llama a `engine.setSkin` (redibuja sin reiniciar). Cada juego define sus colores en `SKINS` (`constants.ts`); `retro` conserva el look original. Registro en `references/game-with-skins.md`.
 
-| Juego      | Id          | Notas                                                                                                                                                                                       |
-| ---------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Asteroides | `asteroids` | Con vidas, power-up de triple disparo.                                                                                                                                                      |
-| Tetris     | `tetris`    | 7 piezas (la «N» está retirada). Selector de **skins** (retro, neon, pastel, pixel) persistido en `localStorage["tetris-skin"]`, por defecto `retro` (spec 11; reemplazó al selector TEMA). |
-| Arkanoid   | `arkanoid`  | Niveles, vidas, victoria, sprites y sonidos en `public/games/arkanoid/`.                                                                                                                    |
-| Snake      | `snake`     | Sin vidas, sprites en `public/games/snake/`.                                                                                                                                                |
+| Juego      | Id          | Notas                                                                                                     |
+| ---------- | ----------- | --------------------------------------------------------------------------------------------------------- |
+| Asteroides | `asteroids` | Con vidas, power-up de triple disparo. Dibujo por skin en `render.ts` (pixel a 1/3 de resolución).        |
+| Tetris     | `tetris`    | 7 piezas (la «N» está retirada). Skins desde la spec 11 (reemplazó al selector TEMA).                     |
+| Arkanoid   | `arkanoid`  | Niveles, vidas, victoria, sprites y sonidos en `public/games/arkanoid/`. Skins no retro en `painters.ts`. |
+| Snake      | `snake`     | Sin vidas, sprites en `public/games/snake/`. Fruta sin sprites (skins no retro) en `vector-fruit.ts`.     |
 
 ## Supabase
 
@@ -73,11 +75,14 @@ Cada juego sigue el mismo patrón (definido en las specs 05–07):
 - `saveScore` es una Server Action invocable por POST directo: valida todo el input con `lib/score-rules.ts` (mismos límites que los `check` de la tabla) y llama a `revalidatePath("/", "layout")`.
 - El contacto de `/about` usa Resend con honeypot (`website`) y validación en `lib/contact.ts`.
 
-## Skills y flujo de trabajo
+## Skills, agentes y flujo de trabajo
 
 - **`/frontend-design`**: úsalo siempre para diseñar la interfaz de usuario.
 - **`/spec`** y **`/spec-impl`**: crean y ejecutan specs en `specs/NN-slug.md` (estado `Borrador` → `Approved` → `Implemented`). `/spec-impl` hace una pausa tras cada paso; cada paso debe dejar el sistema funcional y commiteable.
 - **`/add-game`** (proyecto, `.claude/skills/add-game/SKILL.md`): genera la spec para portar o crear un juego (desde `references/started-games/NN-nombre` o desde cero) con su leaderboard e integración en `GamePlayer`. Solo escribe la spec; luego se implementa con `/spec-impl`.
+- **`game-planner`** (agente de proyecto, `.claude/agents/game-planner.md`): decide qué juego agregar (prioriza diversidad de categorías, factibilidad en Canvas 2D y reconocimiento clásico). Recuerda sus sugerencias en su memoria nativa (`.claude/agent-memory/game-planner/`) y las refleja en `references/game-suggestions-todo.md`. Su recomendación se pasa a `/add-game`.
+- **`game-jam`** (agente de proyecto, `.claude/agents/game-jam.md`): recibe el juego que el usuario quiere (p. ej. «pacman»; no inventa juegos) y escribe al menos 2 specs alternativas y completas (mismo formato que las specs 08–10) en `specs/game-jam/<game-id>/`, más un `README.md` comparativo. Es independiente de `game-planner` y no entrevista. La spec elegida se mueve a `specs/NN-<id>-game.md` y se implementa con `/spec-impl`.
+- **`skin-designer`** (agente de proyecto, `.claude/agents/skin-designer.md`): recibe el id o el nombre de un juego y le implementa las 4 skins (retro, neon, pastel, pixel art) tomando el Tetris como referencia. Reutiliza el selector genérico de `GamePlayer` (`lib/games/skins.ts`, `localStorage["<id>-skin"]`). Solo cambia lo visual; verifica con `tsc`, `lint` y Playwright, y registra el juego en `references/game-with-skins.md`.
 - Idioma: specs, textos de UI y mensajes de error en español; código en inglés.
 
 ## Hooks y herramientas

@@ -10,13 +10,13 @@ import { SnakeCanvas } from "@/components/snake-canvas";
 import { TetrisCanvas } from "@/components/tetris-canvas";
 import { MIN_PLAYER_NAME_LENGTH } from "@/lib/score-rules";
 import {
-  DEFAULT_SKIN,
-  SKIN_OPTIONS,
-  SKIN_STORAGE_KEY,
-  SKINS,
-  isTetrisSkin,
-} from "@/lib/games/tetris/constants";
-import type { TetrisSkin } from "@/lib/games/tetris/types";
+  DEFAULT_SKIN_ID,
+  SKIN_IDS,
+  SKIN_LABELS,
+  isSkinId,
+  skinStorageKey,
+  type SkinId,
+} from "@/lib/games/skins";
 
 const INITIAL_LIVES = 3;
 const MAX_NAME_LENGTH = 10;
@@ -27,10 +27,10 @@ const SCORE_TICK_MS = 220;
 const POINTS_PER_LEVEL = 2500;
 
 const REAL_GAMES = {
-  asteroids: { hasLives: true, hasSkinSelector: false },
+  asteroids: { hasLives: true, hasSkinSelector: true },
   tetris: { hasLives: false, hasSkinSelector: true },
-  arkanoid: { hasLives: true, hasSkinSelector: false },
-  snake: { hasLives: false, hasSkinSelector: false },
+  arkanoid: { hasLives: true, hasSkinSelector: true },
+  snake: { hasLives: false, hasSkinSelector: true },
 } as const;
 
 type RealGameId = keyof typeof REAL_GAMES;
@@ -59,7 +59,7 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
   const [name, setName] = useState("INVITADO");
   const [isSaved, setIsSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [skin, setSkin] = useState<TetrisSkin>(DEFAULT_SKIN);
+  const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN_ID);
   const [isSaving, startSaving] = useTransition();
 
   const gameRef = useRef<GameHandle>(null);
@@ -74,14 +74,13 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
   // La preferencia se lee tras montar para no romper la hidratación
   useEffect(() => {
     try {
-      const storedSkin = localStorage.getItem(SKIN_STORAGE_KEY);
-      if (!isTetrisSkin(storedSkin)) return;
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura única de localStorage tras la hidratación
-      setSkin(storedSkin);
+      const storedSkin = localStorage.getItem(skinStorageKey(gameId));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura de localStorage tras la hidratación
+      setSkin(isSkinId(storedSkin) ? storedSkin : DEFAULT_SKIN_ID);
     } catch {
       // Sin localStorage el juego sigue con la skin por defecto
     }
-  }, []);
+  }, [gameId]);
 
   useEffect(() => {
     if (isRealGame || isOver || isPaused) return;
@@ -102,10 +101,11 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
     }
   };
 
-  const changeSkin = (nextSkin: TetrisSkin) => {
+  const changeSkin = (nextSkin: string) => {
+    if (!isSkinId(nextSkin)) return;
     setSkin(nextSkin);
     try {
-      localStorage.setItem(SKIN_STORAGE_KEY, nextSkin);
+      localStorage.setItem(skinStorageKey(gameId), nextSkin);
     } catch {
       // La preferencia es solo un conveniente por navegador
     }
@@ -152,6 +152,7 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           <AsteroidsCanvas
             ref={gameRef}
             isPaused={isPaused}
+            skin={skin}
             onScoreChange={setScore}
             onLivesChange={handleLivesChange}
             onLevelChange={setEngineLevel}
@@ -175,6 +176,7 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           <ArkanoidCanvas
             ref={gameRef}
             isPaused={isPaused}
+            skin={skin}
             onScoreChange={setScore}
             onLivesChange={handleLivesChange}
             onLevelChange={setEngineLevel}
@@ -187,6 +189,7 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           <SnakeCanvas
             ref={gameRef}
             isPaused={isPaused}
+            skin={skin}
             onScoreChange={setScore}
             onLevelChange={setEngineLevel}
             onPauseChange={setIsPaused}
@@ -232,20 +235,18 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           </div>
           {realGame?.hasSkinSelector && (
             <div className="hud-stat skin">
-              <label className="l" htmlFor="tetris-skin">
+              <label className="l" htmlFor="game-skin">
                 Skin
               </label>
               <select
-                id="tetris-skin"
+                id="game-skin"
                 className="skin-select"
                 value={skin}
-                onChange={(event) =>
-                  changeSkin(event.target.value as TetrisSkin)
-                }
+                onChange={(event) => changeSkin(event.target.value)}
               >
-                {SKIN_OPTIONS.map((option) => (
+                {SKIN_IDS.map((option) => (
                   <option key={option} value={option}>
-                    {SKINS[option].label}
+                    {SKIN_LABELS[option]}
                   </option>
                 ))}
               </select>
