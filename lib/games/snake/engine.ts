@@ -148,6 +148,8 @@ export function createSnakeEngine(
       direction,
       state,
       skin,
+      score,
+      level,
     });
   }
 

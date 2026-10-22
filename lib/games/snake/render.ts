@@ -20,6 +20,8 @@ import type {
 import { drawVectorFruit } from "./vector-fruit";
 
 const OVERLAY_FONT = "bold 56px monospace";
+const HUD_FONT = "bold 16px monospace";
+const HUD_MARGIN = 14;
 
 const SEGMENT_INSET = 4;
 const SEGMENT_RADIUS = 10;
@@ -51,6 +53,8 @@ export interface Scene {
   direction: Direction;
   state: SnakeState;
   skin: SnakeSkin;
+  score: number;
+  level: number;
 }
 
 const toCss = ([r, g, b]: Rgb) => `rgb(${r}, ${g}, ${b})`;
@@ -298,6 +302,20 @@ function drawOverlay(
   ctx.fillText(message, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 }
 
+function drawHud(
+  ctx: CanvasRenderingContext2D,
+  scene: Scene,
+  skin: SkinDefinition,
+) {
+  ctx.fillStyle = skin.overlayText;
+  ctx.font = HUD_FONT;
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  ctx.fillText(`SCORE  ${scene.score}`, HUD_MARGIN, HUD_MARGIN);
+  ctx.textAlign = "right";
+  ctx.fillText(`NIVEL ${scene.level}`, CANVAS_WIDTH - HUD_MARGIN, HUD_MARGIN);
+}
+
 export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene) {
   const skin = SKINS[scene.skin];
   ctx.imageSmoothingEnabled = skin.drawStyle !== "pixel";
@@ -305,6 +323,7 @@ export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene) {
   drawSceneFruit(ctx, scene, skin);
   BODY_PAINTERS[skin.drawStyle](ctx, scene.snake, skin);
   drawEyes(ctx, scene.snake[0], scene.direction, skin);
+  drawHud(ctx, scene, skin);
 
   const overlayMessage = OVERLAY_MESSAGES[scene.state];
   if (overlayMessage) drawOverlay(ctx, overlayMessage, skin);
