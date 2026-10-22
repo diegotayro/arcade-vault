@@ -1,15 +1,18 @@
-import {
-  BALL_SIZE,
-  CANVAS_HEIGHT,
-  CANVAS_WIDTH,
-  EXPLOSION_DURATION,
-  EXPLOSION_FRAME_COUNT,
-} from "./constants";
-import { drawFrame, drawSprite, EXPLOSION_FRAMES } from "./sprites";
-import type { ArkanoidState, Ball, Block, Explosion, Paddle } from "./types";
+import { BALL_SIZE, CANVAS_HEIGHT, CANVAS_WIDTH, SKINS } from "./constants";
+import type { Painter } from "./painters";
+import type {
+  ArkanoidSkin,
+  ArkanoidState,
+  Ball,
+  Block,
+  Explosion,
+  Paddle,
+  SkinDefinition,
+} from "./types";
 
 export interface RenderState {
-  image: HTMLImageElement;
+  skin: ArkanoidSkin;
+  painter: Painter;
   blocks: Block[];
   explosions: Explosion[];
   paddle: Paddle;
@@ -20,9 +23,6 @@ export interface RenderState {
   state: ArkanoidState;
 }
 
-const BACKGROUND_COLOR = "#000";
-const TEXT_COLOR = "#fff";
-const OVERLAY_COLOR = "rgba(0, 0, 0, 0.6)";
 const HUD_FONT = "bold 18px monospace";
 const OVERLAY_FONT = "bold 64px monospace";
 const HUD_MARGIN = 10;
@@ -33,49 +33,29 @@ const OVERLAY_MESSAGES: Partial<Record<ArkanoidState, string>> = {
   win: "¡Completaste el juego!",
 };
 
-function drawBackground(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = BACKGROUND_COLOR;
+function drawBackground(ctx: CanvasRenderingContext2D, skin: SkinDefinition) {
+  ctx.fillStyle = skin.background;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
 function drawBlocks(ctx: CanvasRenderingContext2D, scene: RenderState) {
   for (const block of scene.blocks) {
-    if (!block.alive) continue;
-    drawSprite(
-      ctx,
-      scene.image,
-      block.color,
-      block.x,
-      block.y,
-      block.w,
-      block.h,
-    );
+    if (block.alive) scene.painter.block(ctx, block.color, block);
   }
 }
 
 function drawExplosions(ctx: CanvasRenderingContext2D, scene: RenderState) {
   for (const explosion of scene.explosions) {
-    const frameIndex = Math.min(
-      Math.floor(
-        (explosion.elapsed / EXPLOSION_DURATION) * EXPLOSION_FRAME_COUNT,
-      ),
-      EXPLOSION_FRAME_COUNT - 1,
-    );
-    const frame = EXPLOSION_FRAMES[explosion.color][frameIndex];
-    drawFrame(
-      ctx,
-      scene.image,
-      frame,
-      explosion.x,
-      explosion.y,
-      explosion.w,
-      explosion.h,
-    );
+    scene.painter.explosion(ctx, explosion);
   }
 }
 
-function drawHud(ctx: CanvasRenderingContext2D, scene: RenderState) {
-  ctx.fillStyle = TEXT_COLOR;
+function drawHud(
+  ctx: CanvasRenderingContext2D,
+  scene: RenderState,
+  skin: SkinDefinition,
+) {
+  ctx.fillStyle = skin.text;
   ctx.font = HUD_FONT;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
@@ -88,14 +68,23 @@ function drawHud(ctx: CanvasRenderingContext2D, scene: RenderState) {
       CANVAS_WIDTH -
       HUD_MARGIN -
       (scene.lives - index) * (BALL_SIZE + LIFE_SPACING);
-    drawSprite(ctx, scene.image, "ball", x, HUD_MARGIN, BALL_SIZE, BALL_SIZE);
+    scene.painter.ball(ctx, {
+      x,
+      y: HUD_MARGIN,
+      w: BALL_SIZE,
+      h: BALL_SIZE,
+    });
   }
 }
 
-function drawOverlay(ctx: CanvasRenderingContext2D, message: string) {
-  ctx.fillStyle = OVERLAY_COLOR;
+function drawOverlay(
+  ctx: CanvasRenderingContext2D,
+  message: string,
+  skin: SkinDefinition,
+) {
+  ctx.fillStyle = skin.overlay;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  ctx.fillStyle = TEXT_COLOR;
+  ctx.fillStyle = skin.text;
   ctx.font = OVERLAY_FONT;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -103,16 +92,17 @@ function drawOverlay(ctx: CanvasRenderingContext2D, message: string) {
 }
 
 export function renderScene(ctx: CanvasRenderingContext2D, scene: RenderState) {
-  drawBackground(ctx);
+  const skin = SKINS[scene.skin];
+  ctx.imageSmoothingEnabled = skin.drawStyle !== "pixel";
+
+  drawBackground(ctx, skin);
   drawBlocks(ctx, scene);
   drawExplosions(ctx, scene);
+  scene.painter.paddle(ctx, scene.paddle);
+  scene.painter.ball(ctx, scene.ball);
 
-  const { paddle, ball, image } = scene;
-  drawSprite(ctx, image, "paddle", paddle.x, paddle.y, paddle.w, paddle.h);
-  drawSprite(ctx, image, "ball", ball.x, ball.y, ball.w, ball.h);
-
-  if (scene.state === "playing") drawHud(ctx, scene);
+  if (scene.state === "playing") drawHud(ctx, scene, skin);
 
   const overlayMessage = OVERLAY_MESSAGES[scene.state];
-  if (overlayMessage) drawOverlay(ctx, overlayMessage);
+  if (overlayMessage) drawOverlay(ctx, overlayMessage, skin);
 }

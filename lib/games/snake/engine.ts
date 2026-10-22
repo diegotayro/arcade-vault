@@ -1,6 +1,7 @@
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
+  DEFAULT_SKIN,
   MAX_DT,
   POINTS_PER_FRUIT,
   TOTAL_CELLS,
@@ -25,6 +26,7 @@ import type {
   Direction,
   SnakeCallbacks,
   SnakeEngine,
+  SnakeSkin,
   SnakeState,
 } from "./types";
 
@@ -41,6 +43,7 @@ export function createSnakeEngine(
   let direction: Direction = INITIAL_DIRECTION;
   let spritesheet: HTMLImageElement | null = null;
   let state: SnakeState = "playing";
+  let skin: SnakeSkin = DEFAULT_SKIN;
   let score = 0;
   let fruitsEaten = 0;
   let level = 1;
@@ -138,7 +141,14 @@ export function createSnakeEngine(
 
   function draw() {
     if (!spritesheet) return;
-    renderScene(ctx, { image: spritesheet, snake, fruit, direction, state });
+    renderScene(ctx, {
+      image: spritesheet,
+      snake,
+      fruit,
+      direction,
+      state,
+      skin,
+    });
   }
 
   // ── Loop principal ──────────────────────────────────────────────────────────
@@ -258,6 +268,12 @@ export function createSnakeEngine(
       stopLoop();
       input.detach();
       document.removeEventListener("visibilitychange", onVisibilityChange);
+    },
+
+    // Redibuja al instante (también en pausa) sin tocar el estado del juego
+    setSkin(newSkin) {
+      skin = newSkin;
+      if (started && !destroyed) draw();
     },
   };
 }

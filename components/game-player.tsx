@@ -29,8 +29,8 @@ const POINTS_PER_LEVEL = 2500;
 const REAL_GAMES = {
   asteroids: { hasLives: true, hasSkinSelector: true },
   tetris: { hasLives: false, hasSkinSelector: true },
-  arkanoid: { hasLives: true, hasSkinSelector: false },
-  snake: { hasLives: false, hasSkinSelector: false },
+  arkanoid: { hasLives: true, hasSkinSelector: true },
+  snake: { hasLives: false, hasSkinSelector: true },
 } as const;
 
 type RealGameId = keyof typeof REAL_GAMES;
@@ -176,6 +176,7 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           <ArkanoidCanvas
             ref={gameRef}
             isPaused={isPaused}
+            skin={skin}
             onScoreChange={setScore}
             onLivesChange={handleLivesChange}
             onLevelChange={setEngineLevel}
@@ -188,6 +189,7 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
           <SnakeCanvas
             ref={gameRef}
             isPaused={isPaused}
+            skin={skin}
             onScoreChange={setScore}
             onLevelChange={setEngineLevel}
             onPauseChange={setIsPaused}

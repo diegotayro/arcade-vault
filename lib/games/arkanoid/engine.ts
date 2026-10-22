@@ -1,6 +1,7 @@
 import {
   BOUNCE_SOUND_URL,
   BREAK_SOUND_URL,
+  DEFAULT_SKIN,
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   EXPLOSION_DURATION,
@@ -10,6 +11,7 @@ import {
   PADDLE_BOUNCE_TOLERANCE,
   PADDLE_SPEED,
   POINTS_PER_BLOCK,
+  SKINS,
 } from "./constants";
 import {
   collidesWithBlock,
@@ -19,11 +21,13 @@ import {
 } from "./entities";
 import { createInput } from "./input";
 import { LEVELS } from "./levels";
+import { createPainter, type Painter } from "./painters";
 import { renderScene } from "./render";
 import { loadSpritesheet } from "./sprites";
 import type {
   ArkanoidCallbacks,
   ArkanoidEngine,
+  ArkanoidSkin,
   ArkanoidState,
   Ball,
   Block,
@@ -56,6 +60,8 @@ export function createArkanoidEngine(
   let blocks: Block[] = [];
   let explosions: Explosion[] = [];
   let spritesheet: HTMLImageElement | null = null;
+  let skin: ArkanoidSkin = DEFAULT_SKIN;
+  let painter: Painter | null = null;
   let state: ArkanoidState = "playing";
   let score = 0;
   let lives = INITIAL_LIVES;
@@ -230,8 +236,10 @@ export function createArkanoidEngine(
 
   function draw() {
     if (!spritesheet) return;
+    painter ??= createPainter(SKINS[skin], spritesheet);
     renderScene(ctx, {
-      image: spritesheet,
+      skin,
+      painter,
       blocks,
       explosions,
       paddle,
@@ -360,6 +368,14 @@ export function createArkanoidEngine(
       stopLoop();
       input.detach();
       document.removeEventListener("visibilitychange", onVisibilityChange);
+    },
+
+    // Redibuja al instante (también en pausa) sin tocar el estado del juego
+    setSkin(newSkin) {
+      if (newSkin === skin) return;
+      skin = newSkin;
+      painter = null;
+      if (ready && !destroyed) draw();
     },
   };
 }
