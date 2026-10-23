@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { cacheLife, cacheTag } from "next/cache";
+import { createPublicClient } from "@/lib/supabase/public";
 
 export interface ScoreEntry {
   rank: number;
@@ -29,22 +30,53 @@ function toScoreEntry(row: ScoreRow, rank: number): ScoreEntry {
   };
 }
 
+export const LEADERBOARD_CACHE_TAG = "leaderboard";
+
+// Las funciones cacheadas lanzan ante un error para no cachear un fallo transitorio
+async function fetchTopScores(
+  gameId: string,
+  limit: number,
+): Promise<ScoreEntry[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(LEADERBOARD_CACHE_TAG);
+
+  const { data, error } = await createPublicClient()
+    .from("leaderboard")
+    .select("player_name, score, created_at")
+    .eq("game_id", gameId)
+    .order("score", { ascending: false })
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  if (error) throw error;
+  return data.map((row, index) => toScoreEntry(row, index + 1));
+}
+
+async function fetchAllTopScores(limit: number): Promise<ScoresByGame> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(LEADERBOARD_CACHE_TAG);
+
+  const { data, error } = await createPublicClient().rpc("top_scores", {
+    p_limit: limit,
+  });
+
+  if (error) throw error;
+
+  const scoresByGame: ScoresByGame = {};
+  for (const row of data) {
+    (scoresByGame[row.game_id] ??= []).push(toScoreEntry(row, row.rank));
+  }
+  return scoresByGame;
+}
+
 export async function getTopScores(
   gameId: string,
   limit: number,
 ): Promise<ScoreEntry[]> {
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("leaderboard")
-      .select("player_name, score, created_at")
-      .eq("game_id", gameId)
-      .order("score", { ascending: false })
-      .order("created_at", { ascending: true })
-      .limit(limit);
-
-    if (error) return [];
-    return data.map((row, index) => toScoreEntry(row, index + 1));
+    return await fetchTopScores(gameId, limit);
   } catch {
     return [];
   }
@@ -52,18 +84,7 @@ export async function getTopScores(
 
 export async function getAllTopScores(limit: number): Promise<ScoresByGame> {
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.rpc("top_scores", {
-      p_limit: limit,
-    });
-
-    if (error) return {};
-
-    const scoresByGame: ScoresByGame = {};
-    for (const row of data) {
-      (scoresByGame[row.game_id] ??= []).push(toScoreEntry(row, row.rank));
-    }
-    return scoresByGame;
+    return await fetchAllTopScores(limit);
   } catch {
     return {};
   }

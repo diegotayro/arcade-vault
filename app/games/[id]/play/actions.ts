@@ -1,7 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { GAMES_CACHE_TAG } from "@/lib/games-source";
+import { LEADERBOARD_CACHE_TAG } from "@/lib/leaderboard";
 import { isValidPlayerName, isValidScore } from "@/lib/score-rules";
 
 export type SaveScoreResult = { ok: boolean };
@@ -30,6 +32,8 @@ export async function saveScore(
     return FAILURE;
   }
 
-  revalidatePath("/", "layout");
+  // El ranking y el mejor puntaje del catálogo cambian con cada puntaje
+  updateTag(LEADERBOARD_CACHE_TAG);
+  updateTag(GAMES_CACHE_TAG);
   return { ok: true };
 }
