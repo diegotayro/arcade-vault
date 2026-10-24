@@ -1764,6 +1764,40 @@ a {
   font-size: 16px;
   letter-spacing: 0.1em;
 }
+.auth-subtitle {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.16em;
+}
+.auth-lead {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+.auth-message {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--cyan);
+}
+.auth-message.error {
+  color: var(--magenta);
+}
+.auth-link {
+  display: inline-block;
+  margin: -4px 0 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-link:hover,
+.auth-link:focus-visible {
+  color: var(--cyan);
+}
 .auth-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;

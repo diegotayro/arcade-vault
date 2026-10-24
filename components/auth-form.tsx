@@ -9,6 +9,8 @@ import {
   signUp,
   type AuthFormState,
 } from "@/app/auth/actions";
+import { AuthCardHeader } from "@/components/auth-card-header";
+import { AuthMessage } from "@/components/auth-message";
 
 type AuthTab = "sign-in" | "sign-up";
 
@@ -39,21 +41,7 @@ export function AuthForm() {
   return (
     <div className="av-auth-wrap fade-in">
       <div className="auth-card">
-        <div className="auth-header">
-          <div className="mark"></div>
-          <h2 className="neon-cyan">ARCADE VAULT</h2>
-          <div
-            className="mono"
-            style={{
-              fontSize: 11,
-              color: "var(--ink-faint)",
-              letterSpacing: "0.16em",
-              marginTop: 6,
-            }}
-          >
-            ACCESO AL SISTEMA · v2.6
-          </div>
-        </div>
+        <AuthCardHeader subtitle="ACCESO AL SISTEMA · v2.6" />
 
         <div className="auth-tabs">
           <button
@@ -113,23 +101,13 @@ export function AuthForm() {
               required
             />
           </div>
-
-          {state.message && (
-            <p
-              role={state.status === "error" ? "alert" : "status"}
-              className="mono"
-              style={{
-                fontSize: 12,
-                marginTop: 4,
-                color:
-                  state.status === "error"
-                    ? "var(--magenta, #ff4d8d)"
-                    : "var(--ink)",
-              }}
-            >
-              {state.message}
-            </p>
+          {!isSignUp && (
+            <Link href="/auth/forgot" className="auth-link">
+              ¿Olvidaste tu contraseña?
+            </Link>
           )}
+
+          <AuthMessage state={state} />
 
           <button
             className="btn lg"

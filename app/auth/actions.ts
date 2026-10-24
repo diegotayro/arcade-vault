@@ -94,3 +94,43 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
 }
+
+export async function requestPasswordReset(
+  _state: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const email = readField(formData, "email");
+  if (!isValidEmail(email)) return errorState("Ingresa un correo válido");
+
+  const supabase = await createClient();
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/auth/reset`,
+  });
+
+  // Misma respuesta exista o no la cuenta: no se revela qué correos están registrados
+  return {
+    status: "sent",
+    message: "Si el correo está registrado, te enviamos un enlace",
+  };
+}
+
+export async function updatePassword(
+  _state: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (!isValidPassword(password))
+    return errorState("La contraseña debe tener entre 8 y 72 caracteres");
+  if (password !== confirm) return errorState("Las contraseñas no coinciden");
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error)
+    return errorState(
+      "No se pudo actualizar la contraseña. Pide un enlace nuevo",
+    );
+
+  redirect("/games");
+}
