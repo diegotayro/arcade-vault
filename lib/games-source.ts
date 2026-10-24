@@ -1,6 +1,6 @@
 import type { Game, GameCategory, NeonColor } from "@/lib/games";
-import { createClient as createAnonymousClient } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
+import { cacheLife, cacheTag } from "next/cache";
+import { createPublicClient } from "@/lib/supabase/public";
 import type { Database } from "@/lib/supabase/database.types";
 
 type CatalogView = Database["public"]["Views"]["games_catalog"]["Row"];
@@ -30,16 +30,26 @@ function toGame(row: CatalogRow): Game {
   };
 }
 
+export const GAMES_CACHE_TAG = "games";
+
+// Lanza ante un error para que un fallo transitorio no quede cacheado
+async function fetchGames(): Promise<Game[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(GAMES_CACHE_TAG);
+
+  const { data, error } = await createPublicClient()
+    .from("games_catalog")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return (data as CatalogRow[]).map(toGame);
+}
+
 export async function getGames(): Promise<Game[]> {
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("games_catalog")
-      .select("*")
-      .order("created_at", { ascending: true });
-
-    if (error) return [];
-    return (data as CatalogRow[]).map(toGame);
+    return await fetchGames();
   } catch {
     return [];
   }
@@ -55,11 +65,9 @@ export async function getGame(id: string): Promise<Game | undefined> {
 // devuelve un placeholder que las páginas resuelven con notFound().
 export async function getGameStaticParams(): Promise<{ id: string }[]> {
   try {
-    const supabase = createAnonymousClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    );
-    const { data, error } = await supabase.from("games_catalog").select("id");
+    const { data, error } = await createPublicClient()
+      .from("games_catalog")
+      .select("id");
 
     const params = error ? [] : (data ?? []).map(({ id }) => ({ id: id! }));
     return params.length > 0 ? params : [{ id: PLACEHOLDER_GAME_ID }];

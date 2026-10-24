@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Plantillas de referencia, no forman parte de la app
     "references/**",
+    // Snippets de Playwright (expresiones sueltas para browser_run_code_unsafe)
+    "scripts/**",
   ]),
 ]);
 

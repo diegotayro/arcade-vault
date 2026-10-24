@@ -42,6 +42,14 @@ export const TOUCH_LAYOUTS = {
       down: "ArrowDown",
     },
   },
+  frogger: {
+    dpad: {
+      left: "ArrowLeft",
+      right: "ArrowRight",
+      up: "ArrowUp",
+      down: "ArrowDown",
+    },
+  },
 } as const satisfies Record<string, TouchLayout>;
 
 export type TouchGameId = keyof typeof TOUCH_LAYOUTS;

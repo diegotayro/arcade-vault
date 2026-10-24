@@ -22,7 +22,7 @@ import {
 import { createInput } from "./input";
 import { LEVELS } from "./levels";
 import { createPainter, type Painter } from "./painters";
-import { renderScene } from "./render";
+import { createRenderer } from "./render";
 import { loadSpritesheet } from "./sprites";
 import type {
   ArkanoidCallbacks,
@@ -51,6 +51,7 @@ export function createArkanoidEngine(
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Canvas 2D context is not available");
   const ctx: CanvasRenderingContext2D = context;
+  const renderScene = createRenderer(ctx);
 
   const playBounce = createSoundPlayer(BOUNCE_SOUND_URL);
   const playBreak = createSoundPlayer(BREAK_SOUND_URL);
@@ -237,7 +238,7 @@ export function createArkanoidEngine(
   function draw() {
     if (!spritesheet) return;
     painter ??= createPainter(SKINS[skin], spritesheet);
-    renderScene(ctx, {
+    renderScene({
       skin,
       painter,
       blocks,

@@ -3,7 +3,6 @@ import type { Cell, DrawStyle, FruitColors } from "./types";
 
 const FRUIT_RADIUS = 12;
 const FRUIT_OFFSET_Y = 2;
-const NEON_BLUR = 14;
 const PIXEL_SIZE = 4;
 
 // Manzana de 8×8: L = hoja, F = tono claro, D = tono oscuro
@@ -53,15 +52,12 @@ function drawRoundFruit(
   ctx: CanvasRenderingContext2D,
   cell: Cell,
   colors: FruitColors,
-  glow: boolean,
 ) {
   const origin = cellOrigin(cell);
   const x = origin.x + CELL_SIZE / 2;
   const y = origin.y + CELL_SIZE / 2 + FRUIT_OFFSET_Y;
 
   ctx.save();
-  ctx.shadowBlur = glow ? NEON_BLUR : 0;
-  ctx.shadowColor = colors.line;
   ctx.lineWidth = 2;
 
   ctx.beginPath();
@@ -73,7 +69,6 @@ function drawRoundFruit(
 
   ctx.beginPath();
   ctx.ellipse(x + 5, y - FRUIT_RADIUS - 2, 6, 3, -0.5, 0, Math.PI * 2);
-  ctx.shadowColor = colors.leaf;
   ctx.fillStyle = colors.leaf;
   ctx.fill();
   ctx.restore();
@@ -86,5 +81,5 @@ export function drawVectorFruit(
   style: DrawStyle,
 ) {
   if (style === "pixel") drawPixelFruit(ctx, cell, colors);
-  else drawRoundFruit(ctx, cell, colors, style === "glow");
+  else drawRoundFruit(ctx, cell, colors);
 }

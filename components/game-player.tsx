@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { saveScore } from "@/app/games/[id]/play/actions";
 import { ArkanoidCanvas } from "@/components/arkanoid-canvas";
 import { AsteroidsCanvas } from "@/components/asteroids-canvas";
+import { FroggerCanvas } from "@/components/frogger-canvas";
 import { SnakeCanvas } from "@/components/snake-canvas";
 import { TetrisCanvas } from "@/components/tetris-canvas";
 import { TouchGamepad } from "@/components/touch-gamepad";
@@ -33,6 +34,7 @@ const REAL_GAMES = {
   tetris: { hasLives: false, hasSkinSelector: true },
   arkanoid: { hasLives: true, hasSkinSelector: true },
   snake: { hasLives: false, hasSkinSelector: true },
+  frogger: { hasLives: true, hasSkinSelector: true },
 } as const;
 
 type RealGameId = keyof typeof REAL_GAMES;
@@ -217,6 +219,19 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
             isPaused={isPaused}
             skin={skin}
             onScoreChange={setScore}
+            onLevelChange={setEngineLevel}
+            onPauseChange={setIsPaused}
+            onGameOver={() => setIsOver(true)}
+          />
+        );
+      case "frogger":
+        return (
+          <FroggerCanvas
+            ref={gameRef}
+            isPaused={isPaused}
+            skin={skin}
+            onScoreChange={setScore}
+            onLivesChange={handleLivesChange}
             onLevelChange={setEngineLevel}
             onPauseChange={setIsPaused}
             onGameOver={() => setIsOver(true)}

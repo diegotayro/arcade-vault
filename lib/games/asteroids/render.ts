@@ -30,19 +30,21 @@ export interface RenderState {
 interface StyleMetrics {
   lineScale: number;
   bulletScale: number;
-  glowBlur: number;
   lineJoin: CanvasLineJoin;
 }
 
 const STYLE_METRICS: Record<DrawStyle, StyleMetrics> = {
-  vector: { lineScale: 1, bulletScale: 1, glowBlur: 0, lineJoin: "round" },
-  glow: { lineScale: 1.4, bulletScale: 1.2, glowBlur: 12, lineJoin: "round" },
-  soft: { lineScale: 2, bulletScale: 1.6, glowBlur: 0, lineJoin: "round" },
-  pixel: { lineScale: 2, bulletScale: 2, glowBlur: 0, lineJoin: "miter" },
+  vector: { lineScale: 1, bulletScale: 1, lineJoin: "round" },
+  glow: { lineScale: 1.4, bulletScale: 1.2, lineJoin: "round" },
+  soft: { lineScale: 2, bulletScale: 1.6, lineJoin: "round" },
+  pixel: { lineScale: 2, bulletScale: 2, lineJoin: "miter" },
 };
 
 // El estilo pixel dibuja el mundo a 1/PIXEL_SCALE y lo escala sin suavizado
 const PIXEL_SCALE = 3;
+// El neón dibuja las figuras a 1/GLOW_SCALE y al escalarlas con suavizado
+// quedan difusas: un halo barato en lugar de shadowBlur por figura
+const GLOW_SCALE = 4;
 const PIXEL_PARTICLE_SIZE = 6;
 const FULL_CIRCLE = Math.PI * 2;
 const SOFT_CORNER_RATIO = 0.35;
@@ -69,10 +71,7 @@ function paintPath(
   ctx.strokeStyle = colors.line;
   ctx.lineWidth = lineWidth * metrics.lineScale;
   ctx.lineJoin = metrics.lineJoin;
-  ctx.shadowColor = colors.line;
-  ctx.shadowBlur = metrics.glowBlur;
   ctx.stroke();
-  ctx.shadowBlur = 0;
 }
 
 function drawBullet(
@@ -80,19 +79,15 @@ function drawBullet(
   bullet: Bullet,
   skin: SkinDefinition,
 ) {
-  const metrics = STYLE_METRICS[skin.drawStyle];
-  const radius = bullet.radius * metrics.bulletScale;
+  const radius = bullet.radius * STYLE_METRICS[skin.drawStyle].bulletScale;
   ctx.fillStyle = skin.bullet;
   if (skin.drawStyle === "pixel") {
     ctx.fillRect(bullet.x - radius, bullet.y - radius, radius * 2, radius * 2);
     return;
   }
-  ctx.shadowColor = skin.bullet;
-  ctx.shadowBlur = metrics.glowBlur;
   ctx.beginPath();
   ctx.arc(bullet.x, bullet.y, radius, 0, FULL_CIRCLE);
   ctx.fill();
-  ctx.shadowBlur = 0;
 }
 
 function drawAsteroid(
@@ -207,18 +202,30 @@ function drawParticle(
   ctx.globalAlpha = 1;
 }
 
-function drawWorld(
+function drawBackground(ctx: CanvasRenderingContext2D, skin: SkinDefinition) {
+  ctx.fillStyle = skin.background;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+}
+
+function drawActors(
   ctx: CanvasRenderingContext2D,
   state: RenderState,
   skin: SkinDefinition,
 ) {
-  ctx.fillStyle = skin.background;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
   state.particles.forEach((particle) => drawParticle(ctx, particle, skin));
   state.asteroids.forEach((asteroid) => drawAsteroid(ctx, asteroid, skin));
   state.powerUps.forEach((powerUp) => drawPowerUp(ctx, powerUp, skin));
   state.bullets.forEach((bullet) => drawBullet(ctx, bullet, skin));
   drawShip(ctx, state.ship, skin);
+}
+
+function drawWorld(
+  ctx: CanvasRenderingContext2D,
+  state: RenderState,
+  skin: SkinDefinition,
+) {
+  drawBackground(ctx, skin);
+  drawActors(ctx, state, skin);
 }
 
 function drawLifeIcon(
@@ -240,6 +247,16 @@ function drawLifeIcon(
   ctx.restore();
 }
 
+function drawLifeIcons(
+  ctx: CanvasRenderingContext2D,
+  state: RenderState,
+  skin: SkinDefinition,
+) {
+  for (let i = 0; i < state.lives; i++) {
+    drawLifeIcon(ctx, skin, WIDTH - 16 - i * 22, 18);
+  }
+}
+
 function drawHUD(
   ctx: CanvasRenderingContext2D,
   state: RenderState,
@@ -255,9 +272,7 @@ function drawHUD(
   ctx.textAlign = "center";
   ctx.fillText(`NIVEL ${state.level}`, WIDTH / 2, 26);
 
-  for (let i = 0; i < state.lives; i++) {
-    drawLifeIcon(ctx, skin, WIDTH - 16 - i * 22, 18);
-  }
+  drawLifeIcons(ctx, state, skin);
 
   if (state.ship.tripleShot > 0) {
     ctx.textAlign = "left";
@@ -289,22 +304,35 @@ function drawGameOver(
   );
 }
 
-function createPixelBuffer(): CanvasRenderingContext2D {
+function createScaledBuffer(scale: number): CanvasRenderingContext2D {
   const buffer = document.createElement("canvas");
-  buffer.width = WIDTH / PIXEL_SCALE;
-  buffer.height = HEIGHT / PIXEL_SCALE;
+  buffer.width = WIDTH / scale;
+  buffer.height = HEIGHT / scale;
   const bufferCtx = buffer.getContext("2d");
   if (!bufferCtx) throw new Error("Canvas 2D context is not available");
-  bufferCtx.setTransform(1 / PIXEL_SCALE, 0, 0, 1 / PIXEL_SCALE, 0, 0);
+  bufferCtx.setTransform(1 / scale, 0, 0, 1 / scale, 0, 0);
   return bufferCtx;
 }
 
 export function createRenderer(ctx: CanvasRenderingContext2D) {
-  // Se crea al primer frame en pixel: nada de document al importar (SSR)
+  // Se crean al primer frame de su skin: nada de document al importar (SSR)
   let pixelCtx: CanvasRenderingContext2D | null = null;
+  let glowCtx: CanvasRenderingContext2D | null = null;
+
+  function drawGlowWorld(state: RenderState, skin: SkinDefinition) {
+    glowCtx ??= createScaledBuffer(GLOW_SCALE);
+    glowCtx.clearRect(0, 0, WIDTH, HEIGHT);
+    drawActors(glowCtx, state, skin);
+    drawLifeIcons(glowCtx, state, skin);
+
+    drawBackground(ctx, skin);
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(glowCtx.canvas, 0, 0, WIDTH, HEIGHT);
+    drawActors(ctx, state, skin);
+  }
 
   function drawPixelWorld(state: RenderState, skin: SkinDefinition) {
-    pixelCtx ??= createPixelBuffer();
+    pixelCtx ??= createScaledBuffer(PIXEL_SCALE);
     drawWorld(pixelCtx, state, skin);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(pixelCtx.canvas, 0, 0, WIDTH, HEIGHT);
@@ -315,6 +343,7 @@ export function createRenderer(ctx: CanvasRenderingContext2D) {
   return function drawFrame(state: RenderState) {
     const skin = SKINS[state.skin];
     if (skin.drawStyle === "pixel") drawPixelWorld(state, skin);
+    else if (skin.drawStyle === "glow") drawGlowWorld(state, skin);
     else drawWorld(ctx, state, skin);
     drawHUD(ctx, state, skin);
     if (state.isGameOver) drawGameOver(ctx, state, skin);

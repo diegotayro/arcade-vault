@@ -26,8 +26,9 @@ const HUD_MARGIN = 14;
 const SEGMENT_INSET = 4;
 const SEGMENT_RADIUS = 10;
 const BODY_SIZE = CELL_SIZE - SEGMENT_INSET * 2;
-const CLASSIC_GLOW_BLUR = 12;
-const NEON_GLOW_BLUR = 16;
+// El halo se dibuja a 1/GLOW_SCALE y al escalarlo con suavizado queda
+// difuso: un bloom barato en lugar de shadowBlur por segmento
+const GLOW_SCALE = 8;
 const NEON_CORE_WIDTH = BODY_SIZE - 8;
 const PIXEL_BORDER = 6;
 const EYE_RADIUS = 4;
@@ -123,24 +124,33 @@ function drawLink(
   );
 }
 
-function drawClassicBody(
+type ColorAt = (index: number) => string;
+
+const gradientOf =
+  (snake: Cell[], skin: SkinDefinition): ColorAt =>
+  (index) =>
+    segmentColor(index, snake.length, skin);
+
+function fillClassicBody(
   ctx: CanvasRenderingContext2D,
   snake: Cell[],
-  skin: SkinDefinition,
+  colorAt: ColorAt,
 ) {
-  ctx.save();
-  if (skin.glow) {
-    ctx.shadowColor = skin.glow;
-    ctx.shadowBlur = CLASSIC_GLOW_BLUR;
-  }
   for (let index = snake.length - 1; index >= 0; index--) {
-    const color = segmentColor(index, snake.length, skin);
+    const color = colorAt(index);
     drawSegment(ctx, snake[index], color);
     if (index < snake.length - 1) {
       drawLink(ctx, snake[index], snake[index + 1], color);
     }
   }
-  ctx.restore();
+}
+
+function drawClassicBody(
+  ctx: CanvasRenderingContext2D,
+  snake: Cell[],
+  skin: SkinDefinition,
+) {
+  fillClassicBody(ctx, snake, gradientOf(snake, skin));
 }
 
 // Une los centros con trazos de extremos redondos: el cuerpo queda como una cápsula
@@ -148,18 +158,15 @@ function strokeLinks(
   ctx: CanvasRenderingContext2D,
   snake: Cell[],
   width: number,
-  colorAt: (index: number) => string,
-  blur: number,
+  colorAt: ColorAt,
 ) {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   ctx.lineWidth = width;
-  ctx.shadowBlur = blur;
   for (let index = snake.length - 1; index > 0; index--) {
     const from = cellCenter(snake[index]);
     const to = cellCenter(snake[index - 1]);
     ctx.strokeStyle = colorAt(index);
-    ctx.shadowColor = colorAt(index);
     ctx.beginPath();
     ctx.moveTo(from.x, from.y);
     ctx.lineTo(to.x, to.y);
@@ -167,16 +174,13 @@ function strokeLinks(
   }
 }
 
-const gradientOf = (snake: Cell[], skin: SkinDefinition) => (index: number) =>
-  segmentColor(index, snake.length, skin);
-
 function drawSoftBody(
   ctx: CanvasRenderingContext2D,
   snake: Cell[],
   skin: SkinDefinition,
 ) {
   ctx.save();
-  strokeLinks(ctx, snake, BODY_SIZE, gradientOf(snake, skin), 0);
+  strokeLinks(ctx, snake, BODY_SIZE, gradientOf(snake, skin));
   ctx.restore();
 }
 
@@ -187,8 +191,8 @@ function drawNeonBody(
   skin: SkinDefinition,
 ) {
   ctx.save();
-  strokeLinks(ctx, snake, BODY_SIZE, gradientOf(snake, skin), NEON_GLOW_BLUR);
-  strokeLinks(ctx, snake, NEON_CORE_WIDTH, () => skin.background, 0);
+  strokeLinks(ctx, snake, BODY_SIZE, gradientOf(snake, skin));
+  strokeLinks(ctx, snake, NEON_CORE_WIDTH, () => skin.background);
   ctx.restore();
 }
 
@@ -316,15 +320,71 @@ function drawHud(
   ctx.fillText(`NIVEL ${scene.level}`, CANVAS_WIDTH - HUD_MARGIN, HUD_MARGIN);
 }
 
-export function renderScene(ctx: CanvasRenderingContext2D, scene: Scene) {
-  const skin = SKINS[scene.skin];
-  ctx.imageSmoothingEnabled = skin.drawStyle !== "pixel";
-  drawBackground(ctx, skin);
-  drawSceneFruit(ctx, scene, skin);
-  BODY_PAINTERS[skin.drawStyle](ctx, scene.snake, skin);
-  drawEyes(ctx, scene.snake[0], scene.direction, skin);
-  drawHud(ctx, scene, skin);
+// Silueta del cuerpo en el color del halo
+function paintClassicHalo(
+  ctx: CanvasRenderingContext2D,
+  scene: Scene,
+  skin: SkinDefinition,
+) {
+  const { glow } = skin;
+  if (glow) fillClassicBody(ctx, scene.snake, () => glow);
+}
 
-  const overlayMessage = OVERLAY_MESSAGES[scene.state];
-  if (overlayMessage) drawOverlay(ctx, overlayMessage, skin);
+// Fruta y tubo con su degradado: cada figura irradia su propio color
+function paintNeonHalo(
+  ctx: CanvasRenderingContext2D,
+  scene: Scene,
+  skin: SkinDefinition,
+) {
+  drawSceneFruit(ctx, scene, skin);
+  strokeLinks(ctx, scene.snake, BODY_SIZE, gradientOf(scene.snake, skin));
+}
+
+const HALO_PAINTERS: Partial<
+  Record<
+    DrawStyle,
+    (ctx: CanvasRenderingContext2D, scene: Scene, skin: SkinDefinition) => void
+  >
+> = {
+  classic: paintClassicHalo,
+  glow: paintNeonHalo,
+};
+
+function createScaledBuffer(scale: number): CanvasRenderingContext2D {
+  const buffer = document.createElement("canvas");
+  buffer.width = CANVAS_WIDTH / scale;
+  buffer.height = CANVAS_HEIGHT / scale;
+  const bufferCtx = buffer.getContext("2d");
+  if (!bufferCtx) throw new Error("Canvas 2D context is not available");
+  bufferCtx.setTransform(1 / scale, 0, 0, 1 / scale, 0, 0);
+  return bufferCtx;
+}
+
+export function createRenderer(ctx: CanvasRenderingContext2D) {
+  // Se crea al primer frame con halo: nada de document al importar (SSR)
+  let haloCtx: CanvasRenderingContext2D | null = null;
+
+  function drawHalo(scene: Scene, skin: SkinDefinition) {
+    const paintHalo = HALO_PAINTERS[skin.drawStyle];
+    if (!paintHalo) return;
+    haloCtx ??= createScaledBuffer(GLOW_SCALE);
+    haloCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    paintHalo(haloCtx, scene, skin);
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(haloCtx.canvas, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }
+
+  return function renderScene(scene: Scene) {
+    const skin = SKINS[scene.skin];
+    ctx.imageSmoothingEnabled = skin.drawStyle !== "pixel";
+    drawBackground(ctx, skin);
+    drawHalo(scene, skin);
+    drawSceneFruit(ctx, scene, skin);
+    BODY_PAINTERS[skin.drawStyle](ctx, scene.snake, skin);
+    drawEyes(ctx, scene.snake[0], scene.direction, skin);
+    drawHud(ctx, scene, skin);
+
+    const overlayMessage = OVERLAY_MESSAGES[scene.state];
+    if (overlayMessage) drawOverlay(ctx, overlayMessage, skin);
+  };
 }
