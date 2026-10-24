@@ -19,7 +19,7 @@ import {
   type Fruit,
 } from "./entities";
 import { createInput } from "./input";
-import { renderScene } from "./render";
+import { createRenderer } from "./render";
 import { loadFruitsSpritesheet } from "./sprites";
 import type {
   Cell,
@@ -36,7 +36,7 @@ export function createSnakeEngine(
 ): SnakeEngine {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Canvas 2D context is not available");
-  const ctx: CanvasRenderingContext2D = context;
+  const renderScene = createRenderer(context);
 
   let snake: Cell[] = [];
   let fruit: Fruit | null = null;
@@ -141,7 +141,7 @@ export function createSnakeEngine(
 
   function draw() {
     if (!spritesheet) return;
-    renderScene(ctx, {
+    renderScene({
       image: spritesheet,
       snake,
       fruit,

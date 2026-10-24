@@ -22,10 +22,11 @@ export interface Painter {
   explosion: (ctx: CanvasRenderingContext2D, explosion: Explosion) => void;
   paddle: (ctx: CanvasRenderingContext2D, rect: Rect) => void;
   ball: (ctx: CanvasRenderingContext2D, rect: Rect) => void;
+  // Solo neón: siluetas del halo, que el render difumina por downscale
+  halo?: Painter;
 }
 
 const BLOCK_GAP = 2;
-const GLOW_BLUR = 14;
 const GLOW_FILL_ALPHA = 0.22;
 const GLOW_LINE_WIDTH = 2;
 const SOFT_LINE_WIDTH = 2;
@@ -94,8 +95,6 @@ function glowPaint(
   trace: () => void,
 ) {
   ctx.save();
-  ctx.shadowColor = tones.shade;
-  ctx.shadowBlur = GLOW_BLUR;
   trace();
   ctx.globalAlpha = GLOW_FILL_ALPHA;
   ctx.fillStyle = tones.main;
@@ -105,6 +104,16 @@ function glowPaint(
   ctx.lineWidth = GLOW_LINE_WIDTH;
   ctx.stroke();
   ctx.restore();
+}
+
+function haloPaint(
+  ctx: CanvasRenderingContext2D,
+  tones: Tones,
+  trace: () => void,
+) {
+  trace();
+  ctx.fillStyle = tones.shade;
+  ctx.fill();
 }
 
 function softPaint(
@@ -145,34 +154,37 @@ function pixelRound(ctx: CanvasRenderingContext2D, tones: Tones, rect: Rect) {
   ctx.fillRect(x + PIXEL_GRID, y + PIXEL_GRID, PIXEL_GRID, PIXEL_GRID);
 }
 
+type PaintFn = typeof glowPaint;
+
+function pathShapes(paint: PaintFn): StyleShapes {
+  return {
+    box: (radius) => (ctx, tones, rect) =>
+      paint(ctx, tones, () => tracePath(ctx, rect, radius)),
+    round: (ctx, tones, rect) =>
+      paint(ctx, tones, () => traceCircle(ctx, rect)),
+  };
+}
+
 const STYLE_SHAPES: Record<VectorStyle, StyleShapes> = {
-  glow: {
-    box: (radius) => (ctx, tones, rect) =>
-      glowPaint(ctx, tones, () => tracePath(ctx, rect, radius)),
-    round: (ctx, tones, rect) =>
-      glowPaint(ctx, tones, () => traceCircle(ctx, rect)),
-  },
-  soft: {
-    box: (radius) => (ctx, tones, rect) =>
-      softPaint(ctx, tones, () => tracePath(ctx, rect, radius)),
-    round: (ctx, tones, rect) =>
-      softPaint(ctx, tones, () => traceCircle(ctx, rect)),
-  },
+  glow: pathShapes(glowPaint),
+  soft: pathShapes(softPaint),
   pixel: {
     box: () => pixelBox,
     round: pixelRound,
   },
 };
 
+const HALO_SHAPES = pathShapes(haloPaint);
+
 function blockRadius(style: VectorStyle): number {
   return style === "soft" ? SOFT_BLOCK_RADIUS : 0;
 }
 
-function createVectorPainter(
+function buildVectorPainter(
+  shapes: StyleShapes,
   style: VectorStyle,
   palette: VectorPalette,
 ): Painter {
-  const shapes = STYLE_SHAPES[style];
   const drawBlock = shapes.box(blockRadius(style));
   const isPixel = style === "pixel";
 
@@ -198,6 +210,15 @@ function createVectorPainter(
       shapes.box(isPixel ? 0 : rect.h / 2)(ctx, palette.paddle, rect),
     ball: (ctx, rect) => shapes.round(ctx, palette.ball, rect),
   };
+}
+
+function createVectorPainter(
+  style: VectorStyle,
+  palette: VectorPalette,
+): Painter {
+  const painter = buildVectorPainter(STYLE_SHAPES[style], style, palette);
+  if (style !== "glow") return painter;
+  return { ...painter, halo: buildVectorPainter(HALO_SHAPES, style, palette) };
 }
 
 export function createPainter(
