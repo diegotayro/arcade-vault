@@ -1,12 +1,12 @@
 ---
 name: spec-impl-game
-description: Implementa una spec aprobada de un juego con el mismo flujo SDD de /spec-impl y, al terminar, ejecuta en secuencia los agentes skin-designer y mobile-porter sobre ese juego.
+description: Implementa una spec aprobada de un juego con el mismo flujo SDD de /spec-impl y, al terminar, ejecuta en secuencia los agentes skin-designer, mobile-porter y game-performance sobre ese juego.
 disable-model-invocation: true
 argument-hint: <NN-id-game>
 allowed-tools: Read, Glob, Grep, Edit, Write, AskUserQuestion, Agent, Bash(git status:*), Bash(git branch:*), Bash(git checkout:*), Bash(git log:*), Bash(git diff:*), Bash(git stash:*), Bash(cat:*), Bash(ls:*)
 ---
 
-# /spec-impl-game — Implementación de specs de juegos + skins + móvil
+# /spec-impl-game — Implementación de specs de juegos + skins + móvil + rendimiento
 
 ## Contexto de la sesión
 
@@ -35,7 +35,7 @@ Este comando **reutiliza** `/spec-impl`; no dupliques sus reglas.
 3. **Validación extra en la Fase 1:** la spec debe ser de un juego (archivo `specs/NN-<id>-game.md` o una spec que cree `lib/games/<id>/`). Si no lo es, detente y sugiere usar `/spec-impl`.
 4. Al terminar el último paso **no** muestres el mensaje final de `/spec-impl`: pasa a la Fase 5.
 
-### Fase 5 — Skins y versión móvil
+### Fase 5 — Skins, versión móvil y rendimiento
 
 Solo cuando el usuario haya confirmado el último paso del plan:
 
@@ -45,13 +45,16 @@ Solo cuando el usuario haya confirmado el último paso del plan:
 4. Si `skin-designer` falló o reportó errores de `tsc`/`lint`/Playwright, **detente**, muéstralos y pregunta cómo seguir. No lances el siguiente agente.
 5. Anuncia: `▶ Ejecutando mobile-porter sobre <game-id>…`
 6. Lanza el agente **`mobile-porter`** con el `game-id`. Espera su resultado y resúmelo.
+7. Si `mobile-porter` falló o reportó errores de `tsc`/`lint`, **detente**, muéstralos y pregunta cómo seguir. No lances el siguiente agente.
+8. Anuncia: `▶ Ejecutando game-performance sobre <game-id>…`
+9. Lanza el agente **`game-performance`** con el `game-id`. Espera su resultado y resúmelo (fps antes/después).
 
 Reglas: los agentes van **uno después del otro, nunca en paralelo**. No commitees.
 
 Mensaje final:
 
 ```
-✅ Spec implementada, skins (skin-designer) y versión móvil (mobile-porter) aplicadas.
+✅ Spec implementada, skins (skin-designer), versión móvil (mobile-porter) y rendimiento (game-performance) aplicados.
 
 Siguiente paso: verifica los criterios de aceptación uno por uno.
 Si todos pasan, cambia el estado de la spec a "Implemented" y haz el commit final
