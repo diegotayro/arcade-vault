@@ -89,3 +89,8 @@ export async function signInWithProvider(provider: string) {
   if (error || !data.url) redirect("/auth?error=callback");
   redirect(data.url);
 }
+
+export async function signOut() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+}

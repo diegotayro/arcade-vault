@@ -288,6 +288,18 @@ a {
 .av-nav .auth-btn {
   margin-left: 16px;
 }
+.av-nav .session-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 16px;
+  font-size: 12px;
+  color: var(--cyan);
+}
+.av-mobile-panel .session-username {
+  color: var(--cyan);
+  font-size: 13px;
+}
 .av-nav .hamburger {
   display: none;
 }
@@ -302,7 +314,8 @@ a {
   .av-nav .coin-counter {
     display: none;
   }
-  .av-nav .auth-btn {
+  .av-nav .auth-btn,
+  .av-nav .session-user {
     display: none;
   }
   .av-nav .hamburger {
