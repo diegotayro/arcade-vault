@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
-import { signIn, signUp, type AuthFormState } from "@/app/auth/actions";
+import {
+  signIn,
+  signInWithProvider,
+  signUp,
+  type AuthFormState,
+} from "@/app/auth/actions";
 
 type AuthTab = "sign-in" | "sign-up";
 
@@ -146,12 +151,24 @@ export function AuthForm() {
 
         <div className="auth-divider">O CONTINÚA CON</div>
         <div className="social">
-          <button className="btn ghost" type="button">
-            ◆ GOOGLE
-          </button>
-          <button className="btn ghost" type="button">
-            ▣ GITHUB
-          </button>
+          <form action={signInWithProvider.bind(null, "google")}>
+            <button
+              className="btn ghost"
+              type="submit"
+              style={{ width: "100%" }}
+            >
+              ◆ GOOGLE
+            </button>
+          </form>
+          <form action={signInWithProvider.bind(null, "github")}>
+            <button
+              className="btn ghost"
+              type="submit"
+              style={{ width: "100%" }}
+            >
+              ▣ GITHUB
+            </button>
+          </form>
         </div>
 
         <div

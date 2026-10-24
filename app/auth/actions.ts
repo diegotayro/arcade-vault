@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import {
+  isOAuthProvider,
   isValidEmail,
   isValidPassword,
   isValidUsername,
@@ -72,4 +73,19 @@ export async function signIn(
   if (error) return errorState("Correo o contraseña incorrectos");
 
   redirect("/games");
+}
+
+export async function signInWithProvider(provider: string) {
+  if (!isOAuthProvider(provider)) redirect("/auth?error=callback");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+    },
+  });
+
+  if (error || !data.url) redirect("/auth?error=callback");
+  redirect(data.url);
 }
