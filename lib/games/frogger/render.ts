@@ -38,10 +38,12 @@ const FROG_EYE_RADIUS = 4;
 const FROG_PUPIL_RADIUS = 2;
 const FROG_LEG_REACH = 14;
 const LOG_LINE_SPACING = 12;
-const GLOW_BLUR = 12;
 const SOFT_RADIUS = 8;
 // El estilo pixel dibuja el mundo a 1/PIXEL_SCALE y lo escala sin suavizado
 const PIXEL_SCALE = 4;
+// El neón dibuja las figuras a 1/GLOW_SCALE y al escalarlas con suavizado
+// quedan difusas: un halo barato en lugar de shadowBlur por figura
+const GLOW_SCALE = 8;
 
 const FACING_ANGLE: Record<Direction, number> = {
   up: 0,
@@ -64,16 +66,6 @@ export interface Scene {
 }
 
 const rowY = (row: number) => row * CELL;
-
-function applyGlow(
-  ctx: CanvasRenderingContext2D,
-  skin: SkinDefinition,
-  color: string,
-) {
-  if (skin.drawStyle !== "glow") return;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = GLOW_BLUR;
-}
 
 // Pastel redondea las cajas; el resto de estilos conserva los rectángulos
 function boxPath(
@@ -260,13 +252,6 @@ const ENTITY_PAINTERS = {
   turtle: drawTurtles,
 } as const;
 
-function entityColor(entity: Entity, lane: Lane, skin: SkinDefinition) {
-  if (entity.type === "car") return skin.cars[lane.row % skin.cars.length];
-  if (entity.type === "truck") return skin.truck;
-  if (entity.type === "log") return skin.log;
-  return skin.turtle;
-}
-
 function drawLanes(
   ctx: CanvasRenderingContext2D,
   lanes: Lane[],
@@ -274,10 +259,7 @@ function drawLanes(
 ) {
   for (const lane of lanes) {
     for (const entity of lane.entities) {
-      ctx.save();
-      applyGlow(ctx, skin, entityColor(entity, lane, skin));
       ENTITY_PAINTERS[entity.type](ctx, entity, lane, skin);
-      ctx.restore();
     }
   }
 }
@@ -294,7 +276,6 @@ function drawFrogShape(
   ctx.save();
   ctx.translate(centerX, centerY);
   ctx.rotate(FACING_ANGLE[facing]);
-  applyGlow(ctx, skin, skin.frog);
 
   ctx.strokeStyle = skin.frogDark;
   ctx.lineWidth = 4;
@@ -357,12 +338,9 @@ function drawGoals(
     const h = CELL - TIME_BAR_HEIGHT - GOAL_INSET;
     ctx.fillStyle = skin.goalSlot;
     fillBox(ctx, skin, x, y, w, h);
-    ctx.save();
-    applyGlow(ctx, skin, skin.goalBorder);
     ctx.strokeStyle = skin.goalBorder;
     ctx.lineWidth = 2;
     strokeBox(ctx, skin, x, y, w, h);
-    ctx.restore();
     if (occupied) drawFrogShape(ctx, centerX, y + h / 2, "down", false, skin);
   });
 }
@@ -421,33 +399,53 @@ function drawOverlay(ctx: CanvasRenderingContext2D, skin: SkinDefinition) {
   ctx.fillText("GAME OVER", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
 }
 
+function drawActors(
+  ctx: CanvasRenderingContext2D,
+  scene: Scene,
+  skin: SkinDefinition,
+) {
+  drawGoals(ctx, scene.goals, skin);
+  drawLanes(ctx, scene.lanes, skin);
+  if (scene.state === "playing") drawFrog(ctx, scene.frog, skin);
+}
+
 function drawWorld(
   ctx: CanvasRenderingContext2D,
   scene: Scene,
   skin: SkinDefinition,
 ) {
   drawBackground(ctx, skin);
-  drawGoals(ctx, scene.goals, skin);
-  drawLanes(ctx, scene.lanes, skin);
-  if (scene.state === "playing") drawFrog(ctx, scene.frog, skin);
+  drawActors(ctx, scene, skin);
 }
 
-function createPixelBuffer(): CanvasRenderingContext2D {
+function createScaledBuffer(scale: number): CanvasRenderingContext2D {
   const buffer = document.createElement("canvas");
-  buffer.width = CANVAS_WIDTH / PIXEL_SCALE;
-  buffer.height = CANVAS_HEIGHT / PIXEL_SCALE;
+  buffer.width = CANVAS_WIDTH / scale;
+  buffer.height = CANVAS_HEIGHT / scale;
   const bufferCtx = buffer.getContext("2d");
   if (!bufferCtx) throw new Error("Canvas 2D context is not available");
-  bufferCtx.setTransform(1 / PIXEL_SCALE, 0, 0, 1 / PIXEL_SCALE, 0, 0);
+  bufferCtx.setTransform(1 / scale, 0, 0, 1 / scale, 0, 0);
   return bufferCtx;
 }
 
 export function createRenderer(ctx: CanvasRenderingContext2D) {
   // Se crea al primer frame en pixel: nada de document al importar (SSR)
   let pixelCtx: CanvasRenderingContext2D | null = null;
+  let glowCtx: CanvasRenderingContext2D | null = null;
+
+  function drawGlowWorld(scene: Scene, skin: SkinDefinition) {
+    glowCtx ??= createScaledBuffer(GLOW_SCALE);
+    glowCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    drawActors(glowCtx, scene, skin);
+
+    drawBackground(ctx, skin);
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(glowCtx.canvas, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    drawActors(ctx, scene, skin);
+  }
 
   function drawPixelWorld(scene: Scene, skin: SkinDefinition) {
-    pixelCtx ??= createPixelBuffer();
+    pixelCtx ??= createScaledBuffer(PIXEL_SCALE);
     drawWorld(pixelCtx, scene, skin);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(pixelCtx.canvas, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -457,6 +455,7 @@ export function createRenderer(ctx: CanvasRenderingContext2D) {
   return function renderScene(scene: Scene) {
     const skin = SKINS[scene.skin];
     if (skin.drawStyle === "pixel") drawPixelWorld(scene, skin);
+    else if (skin.drawStyle === "glow") drawGlowWorld(scene, skin);
     else drawWorld(ctx, scene, skin);
     drawHud(ctx, scene, skin);
     if (scene.state === "gameover") drawOverlay(ctx, skin);
