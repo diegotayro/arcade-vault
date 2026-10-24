@@ -288,6 +288,18 @@ a {
 .av-nav .auth-btn {
   margin-left: 16px;
 }
+.av-nav .session-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 16px;
+  font-size: 12px;
+  color: var(--cyan);
+}
+.av-mobile-panel .session-username {
+  color: var(--cyan);
+  font-size: 13px;
+}
 .av-nav .hamburger {
   display: none;
 }
@@ -302,7 +314,8 @@ a {
   .av-nav .coin-counter {
     display: none;
   }
-  .av-nav .auth-btn {
+  .av-nav .auth-btn,
+  .av-nav .session-user {
     display: none;
   }
   .av-nav .hamburger {
@@ -1750,6 +1763,40 @@ a {
   font-family: var(--pixel);
   font-size: 16px;
   letter-spacing: 0.1em;
+}
+.auth-subtitle {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.16em;
+}
+.auth-lead {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+.auth-message {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--cyan);
+}
+.auth-message.error {
+  color: var(--magenta);
+}
+.auth-link {
+  display: inline-block;
+  margin: -4px 0 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-link:hover,
+.auth-link:focus-visible {
+  color: var(--cyan);
 }
 .auth-tabs {
   display: grid;

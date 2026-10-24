@@ -1,50 +1,93 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
+import { useActionState, useState } from "react";
+import {
+  signIn,
+  signInWithProvider,
+  signUp,
+  type AuthFormState,
+} from "@/app/auth/actions";
+import { AuthCardHeader } from "@/components/auth-card-header";
+import { AuthMessage } from "@/components/auth-message";
 
 type AuthTab = "sign-in" | "sign-up";
 
-export function AuthForm() {
-  const router = useRouter();
-  const [tab, setTab] = useState<AuthTab>("sign-in");
-  const isSignUp = tab === "sign-up";
+const CALLBACK_ERROR_MESSAGE =
+  "No se pudo completar el inicio de sesión. Si abriste el enlace del correo en otro navegador, ábrelo en el mismo donde te registraste.";
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    router.push("/games");
-  };
+const IDLE_STATE: AuthFormState = { status: "idle" };
+
+export function AuthForm() {
+  const [tab, setTab] = useState<AuthTab>("sign-in");
+  const [signInState, signInAction, isSigningIn] = useActionState(
+    signIn,
+    IDLE_STATE,
+  );
+  const [signUpState, signUpAction, isSigningUp] = useActionState(
+    signUp,
+    IDLE_STATE,
+  );
+  const hasCallbackError = useSearchParams().get("error") === "callback";
+  const isSignUp = tab === "sign-up";
+  const formState = isSignUp ? signUpState : signInState;
+  const state: AuthFormState =
+    formState.status === "idle" && hasCallbackError
+      ? { status: "error", message: CALLBACK_ERROR_MESSAGE }
+      : formState;
+  const isPending = isSignUp ? isSigningUp : isSigningIn;
 
   return (
     <div className="av-auth-wrap fade-in">
       <div className="auth-card">
-        <div className="auth-header">
-          <div className="mark"></div>
-          <h2 className="neon-cyan">ARCADE VAULT</h2>
-          <div className="mono" style={{ fontSize: 11, color: "var(--ink-faint)", letterSpacing: "0.16em", marginTop: 6 }}>
-            ACCESO AL SISTEMA · v2.6
-          </div>
-        </div>
+        <AuthCardHeader subtitle="ACCESO AL SISTEMA · v2.6" />
 
         <div className="auth-tabs">
-          <button type="button" className={isSignUp ? "" : "on"} onClick={() => setTab("sign-in")}>
+          <button
+            type="button"
+            className={isSignUp ? "" : "on"}
+            onClick={() => setTab("sign-in")}
+          >
             INICIAR SESIÓN
           </button>
-          <button type="button" className={isSignUp ? "on" : ""} onClick={() => setTab("sign-up")}>
+          <button
+            type="button"
+            className={isSignUp ? "on" : ""}
+            onClick={() => setTab("sign-up")}
+          >
             CREAR CUENTA
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form
+          key={tab}
+          noValidate
+          action={isSignUp ? signUpAction : signInAction}
+        >
           <div className="field">
-            <label htmlFor="username">Usuario</label>
-            <input id="username" name="username" autoComplete="username" placeholder="px_kai" />
+            <label htmlFor="email">Correo electrónico</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="jugador@vault.gg"
+              required
+            />
           </div>
           {isSignUp && (
             <div className="field slide-in">
-              <label htmlFor="email">Correo electrónico</label>
-              <input id="email" name="email" type="email" autoComplete="email" placeholder="jugador@vault.gg" />
+              <label htmlFor="username">Usuario</label>
+              <input
+                id="username"
+                name="username"
+                autoComplete="username"
+                placeholder="px_kai"
+                minLength={3}
+                maxLength={12}
+                required
+              />
             </div>
           )}
           <div className="field">
@@ -55,25 +98,66 @@ export function AuthForm() {
               type="password"
               autoComplete={isSignUp ? "new-password" : "current-password"}
               placeholder="••••••••"
+              required
             />
           </div>
+          {!isSignUp && (
+            <Link href="/auth/forgot" className="auth-link">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          )}
 
-          <button className="btn lg" type="submit" style={{ width: "100%", marginTop: 8 }}>
-            {isSignUp ? "CREAR Y JUGAR" : "ENTRAR AL VAULT"}
+          <AuthMessage state={state} />
+
+          <button
+            className="btn lg"
+            type="submit"
+            disabled={isPending}
+            style={{ width: "100%", marginTop: 8 }}
+          >
+            {isSignUp ? "CREAR CUENTA" : "ENTRAR AL VAULT"}
           </button>
         </form>
 
-        <Link href="/games" className="btn ghost" style={{ width: "100%", marginTop: 10 }}>
+        <Link
+          href="/games"
+          className="btn ghost"
+          style={{ width: "100%", marginTop: 10 }}
+        >
           JUGAR COMO INVITADO
         </Link>
 
         <div className="auth-divider">O CONTINÚA CON</div>
         <div className="social">
-          <button className="btn ghost" type="button">◆  GOOGLE</button>
-          <button className="btn ghost" type="button">▣  GITHUB</button>
+          <form action={signInWithProvider.bind(null, "google")}>
+            <button
+              className="btn ghost"
+              type="submit"
+              style={{ width: "100%" }}
+            >
+              ◆ GOOGLE
+            </button>
+          </form>
+          <form action={signInWithProvider.bind(null, "github")}>
+            <button
+              className="btn ghost"
+              type="submit"
+              style={{ width: "100%" }}
+            >
+              ▣ GITHUB
+            </button>
+          </form>
         </div>
 
-        <div style={{ marginTop: 18, textAlign: "center", fontSize: 11, color: "var(--ink-faint)", letterSpacing: "0.1em" }}>
+        <div
+          style={{
+            marginTop: 18,
+            textAlign: "center",
+            fontSize: 11,
+            color: "var(--ink-faint)",
+            letterSpacing: "0.1em",
+          }}
+        >
           AL ENTRAR ACEPTAS LOS TÉRMINOS DEL SALÓN ARCADE
         </div>
       </div>

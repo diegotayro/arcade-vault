@@ -6,9 +6,14 @@ import { GAMES_CACHE_TAG } from "@/lib/games-source";
 import { LEADERBOARD_CACHE_TAG } from "@/lib/leaderboard";
 import { isValidPlayerName, isValidScore } from "@/lib/score-rules";
 
-export type SaveScoreResult = { ok: boolean };
+export type SaveScoreResult =
+  { ok: true } | { ok: false; reason?: "unauthenticated" };
 
 const FAILURE: SaveScoreResult = { ok: false };
+const UNAUTHENTICATED: SaveScoreResult = {
+  ok: false,
+  reason: "unauthenticated",
+};
 
 // Server Action: se puede invocar con un POST directo, por eso se valida todo el input
 export async function saveScore(
@@ -16,16 +21,24 @@ export async function saveScore(
   playerName: string,
   score: number,
 ): Promise<SaveScoreResult> {
-  if (typeof gameId !== "string" || typeof playerName !== "string") return FAILURE;
+  if (typeof gameId !== "string" || typeof playerName !== "string")
+    return FAILURE;
 
   const trimmedName = playerName.trim();
   if (!isValidPlayerName(trimmedName) || !isValidScore(score)) return FAILURE;
 
   try {
     const supabase = await createClient();
-    const { error } = await supabase
-      .from("leaderboard")
-      .insert({ game_id: gameId, player_name: trimmedName, score, user_id: null });
+    // El user_id sale siempre de la sesión del servidor, nunca del cliente
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return UNAUTHENTICATED;
+
+    const { error } = await supabase.from("leaderboard").insert({
+      game_id: gameId,
+      player_name: trimmedName,
+      score,
+      user_id: data.user.id,
+    });
 
     if (error) return FAILURE;
   } catch {

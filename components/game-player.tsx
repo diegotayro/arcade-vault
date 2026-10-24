@@ -11,6 +11,7 @@ import { SnakeCanvas } from "@/components/snake-canvas";
 import { TetrisCanvas } from "@/components/tetris-canvas";
 import { TouchGamepad } from "@/components/touch-gamepad";
 import { getTouchLayout } from "@/lib/games/touch-controls";
+import { useSessionUser } from "@/lib/supabase/use-session-user";
 import { MIN_PLAYER_NAME_LENGTH } from "@/lib/score-rules";
 import {
   DEFAULT_SKIN_ID,
@@ -26,6 +27,7 @@ const MAX_NAME_LENGTH = 10;
 const INVALID_NAME_MESSAGE = `El nombre debe tener entre ${MIN_PLAYER_NAME_LENGTH} y ${MAX_NAME_LENGTH} caracteres.`;
 const SAVE_FAILED_MESSAGE =
   "No se pudo guardar la puntuación. Inténtalo de nuevo.";
+const SIGN_IN_REQUIRED_MESSAGE = "Inicia sesión para guardar tu puntaje";
 const SCORE_TICK_MS = 220;
 const POINTS_PER_LEVEL = 2500;
 
@@ -60,11 +62,17 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
   const [engineLevel, setEngineLevel] = useState(1);
   const [isPaused, setIsPaused] = useState(false);
   const [isOver, setIsOver] = useState(false);
-  const [name, setName] = useState("INVITADO");
+  const sessionUser = useSessionUser();
+  const [typedName, setTypedName] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [skin, setSkin] = useState<SkinId>(DEFAULT_SKIN_ID);
   const [isSaving, startSaving] = useTransition();
+
+  // Sin edición del usuario, el nombre se precarga con su username
+  const name =
+    typedName ??
+    (sessionUser?.username ?? "").toUpperCase().slice(0, MAX_NAME_LENGTH);
 
   const gameRef = useRef<GameHandle>(null);
   const realGame = isRealGameId(gameId) ? REAL_GAMES[gameId] : null;
@@ -138,7 +146,12 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
     startSaving(async () => {
       const result = await saveScore(gameId, trimmedName, score);
       if (result.ok) setIsSaved(true);
-      else setSaveError(SAVE_FAILED_MESSAGE);
+      else
+        setSaveError(
+          result.reason === "unauthenticated"
+            ? SIGN_IN_REQUIRED_MESSAGE
+            : SAVE_FAILED_MESSAGE,
+        );
     });
   };
 
@@ -349,12 +362,19 @@ export function GamePlayer({ gameId, gameTitle }: GamePlayerProps) {
             <div className="final">{score.toLocaleString("es-ES")}</div>
             {isSaved ? (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
+            ) : !sessionUser ? (
+              <div className="mono" style={{ fontSize: 12, marginBottom: 12 }}>
+                {SIGN_IN_REQUIRED_MESSAGE}{" "}
+                <Link href="/auth" className="auth-link">
+                  Iniciar sesión
+                </Link>
+              </div>
             ) : (
               <div className="input-row">
                 <input
                   value={name}
                   onChange={(event) =>
-                    setName(
+                    setTypedName(
                       event.target.value
                         .toUpperCase()
                         .slice(0, MAX_NAME_LENGTH),

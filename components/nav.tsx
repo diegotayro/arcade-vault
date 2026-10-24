@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { signOut } from "@/app/auth/actions";
+import { createClient } from "@/lib/supabase/client";
+import { useSessionUser } from "@/lib/supabase/use-session-user";
 
 const CREDITS_LABEL = "CRÉDITOS · 03";
 
@@ -12,6 +15,8 @@ function isLibraryPath(pathname: string) {
 
 export function Nav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const sessionUser = useSessionUser();
   const [isOpen, setIsOpen] = useState(false);
 
   const homeClass = pathname === "/" ? "active" : "";
@@ -20,6 +25,14 @@ export function Nav() {
   const aboutClass = pathname === "/about" ? "active" : "";
   const authClass =pathname === "/auth" ? "active" : "";
   const closePanel = () => setIsOpen(false);
+
+  const handleSignOut = async () => {
+    closePanel();
+    await signOut();
+    // Limpia la sesión del cliente para que useSessionUser se entere
+    await createClient().auth.signOut({ scope: "local" });
+    router.refresh();
+  };
 
   return (
     <>
@@ -41,7 +54,16 @@ export function Nav() {
           <span className="coin"></span>
           <span>{CREDITS_LABEL}</span>
         </div>
-        <Link href="/auth" className="btn auth-btn">Iniciar Sesión</Link>
+        {sessionUser ? (
+          <div className="session-user">
+            <span className="mono">{sessionUser.username}</span>
+            <button type="button" className="btn ghost" onClick={handleSignOut}>
+              SALIR
+            </button>
+          </div>
+        ) : (
+          <Link href="/auth" className="btn auth-btn">Iniciar Sesión</Link>
+        )}
         <button
           type="button"
           className="btn ghost hamburger"
@@ -59,7 +81,16 @@ export function Nav() {
         <Link href="/games" className={libraryClass} onClick={closePanel}>Biblioteca</Link>
         <Link href="/hall-of-fame" className={hallOfFameClass} onClick={closePanel}>Salón de la Fama</Link>
         <Link href="/about" className={aboutClass} onClick={closePanel}>Sobre Nosotros</Link>
-        <Link href="/auth" className={authClass} onClick={closePanel}>Iniciar Sesión</Link>
+        {sessionUser ? (
+          <>
+            <span className="mono session-username">{sessionUser.username}</span>
+            <button type="button" className="btn ghost" onClick={handleSignOut}>
+              SALIR
+            </button>
+          </>
+        ) : (
+          <Link href="/auth" className={authClass} onClick={closePanel}>Iniciar Sesión</Link>
+        )}
         <div style={{ flex: 1 }}></div>
         <div className="pixel" style={{ fontSize: 9, color: "var(--ink-faint)", letterSpacing: "0.16em" }}>
           {CREDITS_LABEL}
