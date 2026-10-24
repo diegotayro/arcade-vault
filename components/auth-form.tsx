@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
 import { signIn, signUp, type AuthFormState } from "@/app/auth/actions";
 
 type AuthTab = "sign-in" | "sign-up";
+
+const CALLBACK_ERROR_MESSAGE =
+  "No se pudo completar el inicio de sesión. Si abriste el enlace del correo en otro navegador, ábrelo en el mismo donde te registraste.";
 
 const IDLE_STATE: AuthFormState = { status: "idle" };
 
@@ -18,8 +22,13 @@ export function AuthForm() {
     signUp,
     IDLE_STATE,
   );
+  const hasCallbackError = useSearchParams().get("error") === "callback";
   const isSignUp = tab === "sign-up";
-  const state = isSignUp ? signUpState : signInState;
+  const formState = isSignUp ? signUpState : signInState;
+  const state: AuthFormState =
+    formState.status === "idle" && hasCallbackError
+      ? { status: "error", message: CALLBACK_ERROR_MESSAGE }
+      : formState;
   const isPending = isSignUp ? isSigningUp : isSigningIn;
 
   return (
