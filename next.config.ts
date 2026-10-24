@@ -15,6 +15,13 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  images: {
+    // Avatares de OAuth (ver lib/avatar.ts)
+    remotePatterns: [
+      { protocol: "https", hostname: "*.googleusercontent.com" },
+      { protocol: "https", hostname: "avatars.githubusercontent.com" },
+    ],
+  },
   allowedDevOrigins: ["192.168.1.33"],
 };
 

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { signOut } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/client";
 import { useSessionUser } from "@/lib/supabase/use-session-user";
+import { UserAvatar } from "@/components/user-avatar";
 
 const CREDITS_LABEL = "CRÉDITOS · 03";
 
@@ -56,6 +57,7 @@ export function Nav() {
         </div>
         {sessionUser ? (
           <div className="session-user">
+            <UserAvatar username={sessionUser.username} avatarUrl={sessionUser.avatarUrl} />
             <span className="mono">{sessionUser.username}</span>
             <button type="button" className="btn ghost" onClick={handleSignOut}>
               SALIR
@@ -83,7 +85,10 @@ export function Nav() {
         <Link href="/about" className={aboutClass} onClick={closePanel}>Sobre Nosotros</Link>
         {sessionUser ? (
           <>
-            <span className="mono session-username">{sessionUser.username}</span>
+            <div className="session-username">
+              <UserAvatar username={sessionUser.username} avatarUrl={sessionUser.avatarUrl} />
+              <span className="mono">{sessionUser.username}</span>
+            </div>
             <button type="button" className="btn ghost" onClick={handleSignOut}>
               SALIR
             </button>

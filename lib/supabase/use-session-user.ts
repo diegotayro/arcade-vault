@@ -2,13 +2,22 @@
 
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { toAvatarUrl } from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/client";
 
-export type SessionUser = { id: string; username: string } | null;
+export type SessionUser = {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+} | null;
 
 const toSessionUser = (user: User | null | undefined): SessionUser =>
   user
-    ? { id: user.id, username: String(user.user_metadata.username ?? "") }
+    ? {
+        id: user.id,
+        username: String(user.user_metadata.username ?? ""),
+        avatarUrl: toAvatarUrl(user.user_metadata.avatar_url),
+      }
     : null;
 
 export function useSessionUser() {
