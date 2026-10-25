@@ -6,6 +6,7 @@ import {
   isValidEmail,
   isValidPassword,
   isValidUsername,
+  PASSWORD_RULE_MESSAGE,
 } from "@/lib/auth-rules";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,8 +34,7 @@ export async function signUp(
   if (!isValidEmail(email)) return errorState("Ingresa un correo válido");
   if (!isValidUsername(username))
     return errorState("El usuario debe tener entre 3 y 12 caracteres");
-  if (!isValidPassword(password))
-    return errorState("La contraseña debe tener entre 8 y 72 caracteres");
+  if (!isValidPassword(password)) return errorState(PASSWORD_RULE_MESSAGE);
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
@@ -121,8 +121,7 @@ export async function updatePassword(
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
 
-  if (!isValidPassword(password))
-    return errorState("La contraseña debe tener entre 8 y 72 caracteres");
+  if (!isValidPassword(password)) return errorState(PASSWORD_RULE_MESSAGE);
   if (password !== confirm) return errorState("Las contraseñas no coinciden");
 
   const supabase = await createClient();
