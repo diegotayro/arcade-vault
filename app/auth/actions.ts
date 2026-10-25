@@ -7,8 +7,11 @@ import {
   isValidPassword,
   isValidUsername,
   PASSWORD_RULE_MESSAGE,
+  safeNextPath,
 } from "@/lib/auth-rules";
 import { createClient } from "@/lib/supabase/server";
+
+const DEFAULT_SIGNED_IN_PATH = "/games";
 
 export type AuthFormState = {
   status: "idle" | "error" | "check-email" | "sent";
@@ -72,17 +75,20 @@ export async function signIn(
     return errorState("Confirma tu correo antes de entrar");
   if (error) return errorState("Correo o contraseña incorrectos");
 
-  redirect("/games");
+  redirect(safeNextPath(readField(formData, "next"), DEFAULT_SIGNED_IN_PATH));
 }
 
-export async function signInWithProvider(provider: string) {
+export async function signInWithProvider(provider: string, next: string) {
   if (!isOAuthProvider(provider)) redirect("/auth?error=callback");
+
+  const safeNext = safeNextPath(next, "");
+  const callbackQuery = safeNext ? `?next=${encodeURIComponent(safeNext)}` : "";
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback${callbackQuery}`,
     },
   });
 

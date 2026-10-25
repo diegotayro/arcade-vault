@@ -34,7 +34,9 @@ export function AuthForm() {
     IDLE_STATE,
   );
   const passwordValidation = usePasswordValidation();
-  const hasCallbackError = useSearchParams().get("error") === "callback";
+  const searchParams = useSearchParams();
+  const hasCallbackError = searchParams.get("error") === "callback";
+  const next = searchParams.get("next") ?? "";
   const isSignUp = tab === "sign-up";
   const formState = isSignUp ? signUpState : signInState;
   const state: AuthFormState =
@@ -76,6 +78,7 @@ export function AuthForm() {
           action={isSignUp ? signUpAction : signInAction}
           onSubmit={isSignUp ? passwordValidation.onSubmit : undefined}
         >
+          {!isSignUp && <input type="hidden" name="next" value={next} />}
           <div className="field">
             <label htmlFor="email">Correo electrónico</label>
             <input
@@ -134,7 +137,7 @@ export function AuthForm() {
 
         <div className="auth-divider">O CONTINÚA CON</div>
         <div className="social">
-          <form action={signInWithProvider.bind(null, "google")}>
+          <form action={signInWithProvider.bind(null, "google", next)}>
             <button
               className="btn ghost"
               type="submit"
@@ -143,7 +146,7 @@ export function AuthForm() {
               ◆ GOOGLE
             </button>
           </form>
-          <form action={signInWithProvider.bind(null, "github")}>
+          <form action={signInWithProvider.bind(null, "github", next)}>
             <button
               className="btn ghost"
               type="submit"
