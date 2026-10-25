@@ -1818,6 +1818,9 @@ a {
   line-height: 1.5;
   color: var(--ink-dim);
 }
+.field-hint.error {
+  color: var(--magenta);
+}
 .auth-link {
   display: inline-block;
   margin: -4px 0 8px;

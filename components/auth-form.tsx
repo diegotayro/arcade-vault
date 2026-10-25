@@ -11,7 +11,10 @@ import {
 } from "@/app/auth/actions";
 import { AuthCardHeader } from "@/components/auth-card-header";
 import { AuthMessage } from "@/components/auth-message";
-import { PASSWORD_HINT } from "@/lib/auth-rules";
+import {
+  PasswordField,
+  usePasswordValidation,
+} from "@/components/password-field";
 
 type AuthTab = "sign-in" | "sign-up";
 
@@ -30,6 +33,7 @@ export function AuthForm() {
     signUp,
     IDLE_STATE,
   );
+  const passwordValidation = usePasswordValidation();
   const hasCallbackError = useSearchParams().get("error") === "callback";
   const isSignUp = tab === "sign-up";
   const formState = isSignUp ? signUpState : signInState;
@@ -38,6 +42,11 @@ export function AuthForm() {
       ? { status: "error", message: CALLBACK_ERROR_MESSAGE }
       : formState;
   const isPending = isSignUp ? isSigningUp : isSigningIn;
+
+  const selectTab = (nextTab: AuthTab) => {
+    passwordValidation.reset();
+    setTab(nextTab);
+  };
 
   return (
     <div className="av-auth-wrap fade-in">
@@ -48,14 +57,14 @@ export function AuthForm() {
           <button
             type="button"
             className={isSignUp ? "" : "on"}
-            onClick={() => setTab("sign-in")}
+            onClick={() => selectTab("sign-in")}
           >
             INICIAR SESIÓN
           </button>
           <button
             type="button"
             className={isSignUp ? "on" : ""}
-            onClick={() => setTab("sign-up")}
+            onClick={() => selectTab("sign-up")}
           >
             CREAR CUENTA
           </button>
@@ -65,6 +74,7 @@ export function AuthForm() {
           key={tab}
           noValidate
           action={isSignUp ? signUpAction : signInAction}
+          onSubmit={isSignUp ? passwordValidation.onSubmit : undefined}
         >
           <div className="field">
             <label htmlFor="email">Correo electrónico</label>
@@ -91,18 +101,11 @@ export function AuthForm() {
               />
             </div>
           )}
-          <div className="field">
-            <label htmlFor="password">Contraseña</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete={isSignUp ? "new-password" : "current-password"}
-              placeholder="••••••••"
-              required
-            />
-            {isSignUp && <p className="mono field-hint">{PASSWORD_HINT}</p>}
-          </div>
+          <PasswordField
+            label="Contraseña"
+            autoComplete={isSignUp ? "new-password" : "current-password"}
+            validation={isSignUp ? passwordValidation : undefined}
+          />
           {!isSignUp && (
             <Link href="/auth/forgot" className="auth-link">
               ¿Olvidaste tu contraseña?

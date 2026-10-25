@@ -4,12 +4,16 @@ import { useActionState } from "react";
 import { updatePassword, type AuthFormState } from "@/app/auth/actions";
 import { AuthCardHeader } from "@/components/auth-card-header";
 import { AuthMessage } from "@/components/auth-message";
-import { PASSWORD_HINT } from "@/lib/auth-rules";
+import {
+  PasswordField,
+  usePasswordValidation,
+} from "@/components/password-field";
 
 const IDLE_STATE: AuthFormState = { status: "idle" };
 
 export function ResetPasswordForm() {
   const [state, action, isPending] = useActionState(updatePassword, IDLE_STATE);
+  const passwordValidation = usePasswordValidation();
 
   return (
     <div className="av-auth-wrap fade-in">
@@ -17,19 +21,12 @@ export function ResetPasswordForm() {
         <AuthCardHeader subtitle="NUEVA CONTRASEÑA" />
         <p className="auth-lead">Elige tu nueva contraseña.</p>
 
-        <form noValidate action={action}>
-          <div className="field">
-            <label htmlFor="password">Contraseña nueva</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="••••••••"
-              required
-            />
-            <p className="mono field-hint">{PASSWORD_HINT}</p>
-          </div>
+        <form noValidate action={action} onSubmit={passwordValidation.onSubmit}>
+          <PasswordField
+            label="Contraseña nueva"
+            autoComplete="new-password"
+            validation={passwordValidation}
+          />
           <div className="field">
             <label htmlFor="confirm">Repite la contraseña</label>
             <input
