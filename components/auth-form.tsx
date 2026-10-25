@@ -11,6 +11,7 @@ import {
 } from "@/app/auth/actions";
 import { AuthCardHeader } from "@/components/auth-card-header";
 import { AuthMessage } from "@/components/auth-message";
+import { PASSWORD_HINT } from "@/lib/auth-rules";
 
 type AuthTab = "sign-in" | "sign-up";
 
@@ -100,6 +101,7 @@ export function AuthForm() {
               placeholder="••••••••"
               required
             />
+            {isSignUp && <p className="mono field-hint">{PASSWORD_HINT}</p>}
           </div>
           {!isSignUp && (
             <Link href="/auth/forgot" className="auth-link">
