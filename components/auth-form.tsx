@@ -11,6 +11,10 @@ import {
 } from "@/app/auth/actions";
 import { AuthCardHeader } from "@/components/auth-card-header";
 import { AuthMessage } from "@/components/auth-message";
+import {
+  PasswordField,
+  usePasswordValidation,
+} from "@/components/password-field";
 
 type AuthTab = "sign-in" | "sign-up";
 
@@ -29,7 +33,10 @@ export function AuthForm() {
     signUp,
     IDLE_STATE,
   );
-  const hasCallbackError = useSearchParams().get("error") === "callback";
+  const passwordValidation = usePasswordValidation();
+  const searchParams = useSearchParams();
+  const hasCallbackError = searchParams.get("error") === "callback";
+  const next = searchParams.get("next") ?? "";
   const isSignUp = tab === "sign-up";
   const formState = isSignUp ? signUpState : signInState;
   const state: AuthFormState =
@@ -37,6 +44,11 @@ export function AuthForm() {
       ? { status: "error", message: CALLBACK_ERROR_MESSAGE }
       : formState;
   const isPending = isSignUp ? isSigningUp : isSigningIn;
+
+  const selectTab = (nextTab: AuthTab) => {
+    passwordValidation.reset();
+    setTab(nextTab);
+  };
 
   return (
     <div className="av-auth-wrap fade-in">
@@ -47,14 +59,14 @@ export function AuthForm() {
           <button
             type="button"
             className={isSignUp ? "" : "on"}
-            onClick={() => setTab("sign-in")}
+            onClick={() => selectTab("sign-in")}
           >
             INICIAR SESIÓN
           </button>
           <button
             type="button"
             className={isSignUp ? "on" : ""}
-            onClick={() => setTab("sign-up")}
+            onClick={() => selectTab("sign-up")}
           >
             CREAR CUENTA
           </button>
@@ -64,7 +76,9 @@ export function AuthForm() {
           key={tab}
           noValidate
           action={isSignUp ? signUpAction : signInAction}
+          onSubmit={isSignUp ? passwordValidation.onSubmit : undefined}
         >
+          {!isSignUp && <input type="hidden" name="next" value={next} />}
           <div className="field">
             <label htmlFor="email">Correo electrónico</label>
             <input
@@ -90,17 +104,11 @@ export function AuthForm() {
               />
             </div>
           )}
-          <div className="field">
-            <label htmlFor="password">Contraseña</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete={isSignUp ? "new-password" : "current-password"}
-              placeholder="••••••••"
-              required
-            />
-          </div>
+          <PasswordField
+            label="Contraseña"
+            autoComplete={isSignUp ? "new-password" : "current-password"}
+            validation={isSignUp ? passwordValidation : undefined}
+          />
           {!isSignUp && (
             <Link href="/auth/forgot" className="auth-link">
               ¿Olvidaste tu contraseña?
@@ -129,7 +137,7 @@ export function AuthForm() {
 
         <div className="auth-divider">O CONTINÚA CON</div>
         <div className="social">
-          <form action={signInWithProvider.bind(null, "google")}>
+          <form action={signInWithProvider.bind(null, "google", next)}>
             <button
               className="btn ghost"
               type="submit"
@@ -138,7 +146,7 @@ export function AuthForm() {
               ◆ GOOGLE
             </button>
           </form>
-          <form action={signInWithProvider.bind(null, "github")}>
+          <form action={signInWithProvider.bind(null, "github", next)}>
             <button
               className="btn ghost"
               type="submit"
