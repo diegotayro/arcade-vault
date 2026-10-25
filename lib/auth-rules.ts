@@ -27,6 +27,15 @@ export const isValidPassword = (password: string) =>
 
 export const isValidUsername = isValidPlayerName;
 
+// Solo rutas internas: evita open redirect con `//evil.com`, `/\evil.com` o `https://evil.com`
+export const safeNextPath = (next: string | null, fallback: string) =>
+  next &&
+  next.startsWith("/") &&
+  !next.startsWith("//") &&
+  !next.startsWith("/\\")
+    ? next
+    : fallback;
+
 export const OAUTH_PROVIDERS = ["google", "github"] as const;
 export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
 
