@@ -109,6 +109,8 @@ Agentes de proyecto (definición completa en `.claude/agents/<nombre>.md`):
 
 Flujo típico de un juego nuevo: `game-planner` → `/add-game` (o `game-jam`) → `/spec-impl-game`.
 
+Simplificación: al terminar una tarea que cree o modifique código, ejecuta el agente `code-simplifier:code-simplifier` sobre los cambios recientes (una vez por tarea, no por archivo) y luego verifica con `npx tsc --noEmit` y `npm run lint`.
+
 Idioma: specs, textos de UI y mensajes de error en español; código en inglés.
 
 ## Hooks y herramientas
